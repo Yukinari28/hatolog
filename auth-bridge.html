@@ -63,12 +63,12 @@
 
 // Same project config as index.html's FIREBASE_CONFIG — keep these two in sync.
 var FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: "AIzaSyCwELvMfa0IRC1J0nmvJIeEp7Ev2meAL_A",
+  authDomain: "hatolog-c31d9.firebaseapp.com",
+  projectId: "hatolog-c31d9",
+  storageBucket: "hatolog-c31d9.firebasestorage.app",
+  messagingSenderId: "828817787376",
+  appId: "1:828817787376:web:3d8f5f7b5bf5093b253535"
 };
 
 var params = new URLSearchParams(window.location.search);
@@ -95,12 +95,13 @@ if(!FIREBASE_CONFIG.apiKey){
     setStatus("Opening the Google sign-in window…");
     try{
       var mods = await Promise.all([
-        import("https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js"),
-        import("https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js")
+        import("./vendor/firebase-app.js"),
+        import("./vendor/firebase-auth.js")
       ]);
       var app = mods[0].initializeApp(FIREBASE_CONFIG);
       var auth = mods[1].getAuth(app);
       var provider = new mods[1].GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
       var result = await mods[1].signInWithPopup(auth, provider);
       var cred = mods[1].GoogleAuthProvider.credentialFromResult(result);
       if(!cred || !cred.idToken){ throw new Error("Didn't get a usable credential back from Google."); }
