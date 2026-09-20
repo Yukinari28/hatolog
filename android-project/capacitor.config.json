@@ -2,10 +2,5 @@
   "appId": "com.hatolog.app",
   "appName": "HatoLog",
   "webDir": "www",
-  "bundledWebRuntime": false,
-  "server": {
-    "url": "https://REPLACE-ME.up.railway.app",
-    "cleartext": false,
-    "androidScheme": "https"
-  }
+  "bundledWebRuntime": false
 }
