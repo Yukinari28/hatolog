@@ -10,7 +10,7 @@ const PROTOCOL = "hatolog";
 //
 // It can also be overridden at runtime, which is handy for testing a staging
 // deploy without building anything:  set HH_APP_URL in the environment.
-const APP_URL = process.env.HH_APP_URL || "https://REPLACE-ME.up.railway.app";
+const APP_URL = process.env.HH_APP_URL || "https://hatolog.up.railway.app";
 
 // A window that has loaded the site once keeps working offline, because the page
 // installs a service worker that holds on to a copy. The bundled file is only
