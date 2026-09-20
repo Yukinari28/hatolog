@@ -28,7 +28,8 @@
       }
     ],
     "win": {
-      "target": ["nsis", "portable"]
+      "target": ["nsis", "portable"],
+      "icon": "build/icon.ico"
     },
     "nsis": {
       "oneClick": false,

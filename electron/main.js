@@ -76,6 +76,7 @@ function createWindow() {
     minHeight: 560,
     autoHideMenuBar: true,
     title: "HatoLog",
+    icon: path.join(__dirname, "build", "icon.ico"),
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
