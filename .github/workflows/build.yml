@@ -50,6 +50,8 @@ jobs:
           java-version: 17
 
       - uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools"
 
       - name: Use the deployed app as the offline fallback
         run: cp server/public/index.html android-project/www/index.html
