@@ -33,7 +33,11 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "HatoLog-Setup.exe"
+    },
+    "portable": {
+      "artifactName": "HatoLog-Portable.exe"
     }
   }
 }

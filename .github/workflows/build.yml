@@ -5,6 +5,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch: {}
 
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -32,7 +35,7 @@ jobs:
         with:
           name: windows-exe
           path: |
-            electron/dist/*.exe
+            electron/dist/HatoLog-Setup.exe
           if-no-files-found: error
 
   build-android:
@@ -91,3 +94,33 @@ jobs:
           name: HatoLog-apk
           path: android-project/android/app/build/outputs/apk/debug/HatoLog.apk
           if-no-files-found: error
+
+  # Publishes both builds to a single rolling GitHub Release tagged "latest",
+  # replacing its files every time. Unlike the per-run artifacts above (which
+  # need a GitHub login and expire after 90 days), release assets are public,
+  # permanent, direct-download links — that's what the website's download
+  # buttons point at.
+  publish-release:
+    needs: [build-windows, build-android]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-exe
+          path: dl/windows
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: HatoLog-apk
+          path: dl/android
+
+      - name: Publish/replace the "latest" release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest build
+          body: Automatically rebuilt from the latest commit on main. Always the newest version.
+          make_latest: true
+          files: |
+            dl/windows/HatoLog-Setup.exe
+            dl/android/HatoLog.apk
