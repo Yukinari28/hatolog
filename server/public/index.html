@@ -692,9 +692,11 @@
   .dl-dropdown-menu{
     position:absolute; top:calc(100% + 8px); right:0; z-index:40;
     display:flex; flex-direction:column; gap:2px; min-width:200px;
+    max-width:calc(100vw - 24px); box-sizing:border-box;
     background:var(--surface); border:1px solid var(--border); border-radius:12px;
     padding:8px; box-shadow:0 8px 24px -8px rgba(0,0,0,0.25);
   }
+  @media (max-width:480px){ .dl-dropdown-menu{ right:-8px; } }
   .dl-dropdown-menu a{
     display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px;
     text-decoration:none; color:var(--text); font-size:0.86rem; font-weight:600;
@@ -8418,9 +8420,17 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
   }
 
   var currentUid = null;
+  // Guards against the window between "signed in" and "finished pulling this
+  // account's cloud data": currentUid is set the instant sign-in resolves, but
+  // fsGetDoc below is async. Anything that calls save() in that gap (a stray
+  // render, a periodic tick, this device's own pre-sync local state) used to
+  // be pushed straight to the cloud and permanently overwrite whatever another
+  // device — mid-timer or not — had already saved there. This flag keeps the
+  // cloud read-only for this device until its own pull has actually landed.
+  var cloudReady = false;
   var syncTimer = null;
   window.__hh.onSave(function(state){
-    if(!currentUid) return;
+    if(!currentUid || !cloudReady) return;
     clearTimeout(syncTimer);
     syncTimer = setTimeout(function(){
       fsSetDoc(fsDoc(db, "users", currentUid), state).catch(function(e){
@@ -8430,8 +8440,9 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
   });
 
   onAuthStateChanged(auth, async function(user){
-    if(!user){ currentUid = null; renderSignedOut(); return; }
+    if(!user){ currentUid = null; cloudReady = false; renderSignedOut(); return; }
     currentUid = user.uid;
+    cloudReady = false;
     renderSignedIn(user);
     try{
       var snap = await fsGetDoc(fsDoc(db, "users", user.uid));
@@ -8444,6 +8455,8 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       }
     }catch(e){
       console.warn("HatoLog: cloud load failed — continuing with local data.", e);
+    }finally{
+      cloudReady = true;
     }
   });
 })();
