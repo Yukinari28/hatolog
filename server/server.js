@@ -10,6 +10,14 @@
 //     — the app is a single file with its images inlined.
 //   * /version.json reports a hash of the current index.html, which is how the
 //     app decides whether the copy it's running is stale.
+//
+// Basic hardening below (rate limiting, security headers, method/path
+// sanity): this is a static-file server sitting behind Railway's own network
+// layer, not a substitute for it. It won't stop a large distributed flood by
+// itself — nothing this small can — but it does stop a single bad actor (or
+// a naive bot/scanner) from hammering the process, and it closes off the
+// obvious low-effort attack surface (arbitrary methods, path traversal,
+// unbounded memory growth from the mitigations themselves).
 
 const http = require("http");
 const fs = require("fs");
@@ -19,6 +27,43 @@ const crypto = require("crypto");
 
 const PORT = process.env.PORT || 3000;
 const ROOT = path.join(__dirname, "public");
+
+// ---- rate limiting -------------------------------------------------------
+// Fixed-window counter per client IP: cheap (one Map lookup per request), no
+// per-entry timers, and the whole window resets at once rather than growing
+// forever. Generous enough for normal browsing (a page load fetches this one
+// HTML file plus a handful of small requests) while still cutting off a
+// single client hammering the server.
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const RATE_LIMIT_MAX = 240; // per IP, per window
+const RATE_LIMIT_MAX_CLIENTS = 50000; // hard cap so a flood of spoofed/unique
+                                       // IPs can't grow this map without bound
+let rateLimitMap = new Map();
+let rateLimitWindowStart = Date.now();
+
+function clientIp(req) {
+  // Railway terminates TLS and proxies to this process, so the real client
+  // address is the first hop in X-Forwarded-For, not the socket's peer.
+  const xff = req.headers["x-forwarded-for"];
+  if (xff) return xff.split(",")[0].trim();
+  return req.socket.remoteAddress || "unknown";
+}
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  if (now - rateLimitWindowStart > RATE_LIMIT_WINDOW_MS) {
+    rateLimitMap = new Map();
+    rateLimitWindowStart = now;
+  }
+  if (rateLimitMap.size >= RATE_LIMIT_MAX_CLIENTS && !rateLimitMap.has(ip)) {
+    // Under a distributed flood of unique IPs, holding the line here (rather
+    // than growing unbounded) matters more than tracking every last one.
+    return true;
+  }
+  const count = (rateLimitMap.get(ip) || 0) + 1;
+  rateLimitMap.set(ip, count);
+  return count > RATE_LIMIT_MAX;
+}
 
 const TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -63,7 +108,18 @@ function send(req, res, status, body, type, cache, key) {
     "Cache-Control": cache,
     // The desktop and Android builds fetch this from their own origin.
     "Access-Control-Allow-Origin": "*",
-    "X-Content-Type-Options": "nosniff"
+    "X-Content-Type-Options": "nosniff",
+    // Clickjacking protection: the app has no reason to be framed by another
+    // site. "self" rather than "none" only in case it's ever embedded on the
+    // same origin (e.g. a future in-app webview pointed at its own domain).
+    "Content-Security-Policy": "frame-ancestors 'self'",
+    "X-Frame-Options": "SAMEORIGIN",
+    // Nothing here needs the browser handing out location/camera/mic/etc.
+    "Permissions-Policy": "geolocation=(), camera=(), microphone=(), payment=()",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    // Railway serves this over HTTPS only; tells browsers to remember that
+    // for this host instead of ever silently trying plain HTTP.
+    "Strict-Transport-Security": "max-age=15552000; includeSubDomains"
   };
   const wantsGzip = /\bgzip\b/.test(req.headers["accept-encoding"] || "") &&
                     /text|json|javascript|svg/.test(type);
@@ -90,7 +146,30 @@ function send(req, res, status, body, type, cache, key) {
 }
 
 const server = http.createServer((req, res) => {
-  let url = decodeURIComponent((req.url || "/").split("?")[0]);
+  // Nothing here is more than a few KB or needs a body, and every real
+  // request is a GET — HEAD is let through for uptime checks.
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    return send(req, res, 405, Buffer.from("Method not allowed"), "text/plain; charset=utf-8", "no-store");
+  }
+
+  const ip = clientIp(req);
+  if (isRateLimited(ip)) {
+    const headers = { "Content-Type": "text/plain; charset=utf-8", "Retry-After": "60" };
+    res.writeHead(429, headers);
+    return res.end("Too many requests — try again in a moment.");
+  }
+
+  let url;
+  try {
+    url = decodeURIComponent((req.url || "/").split("?")[0]);
+  } catch (e) {
+    // A malformed %-escape in the URL — not a path worth spending any more
+    // effort resolving.
+    return send(req, res, 400, Buffer.from("Bad request"), "text/plain; charset=utf-8", "no-store");
+  }
+  if (url.length > 512) {
+    return send(req, res, 414, Buffer.from("URI too long"), "text/plain; charset=utf-8", "no-store");
+  }
 
   if (url === "/health") {
     return send(req, res, 200, Buffer.from("ok"), "text/plain; charset=utf-8", "no-store");
@@ -128,6 +207,15 @@ const server = http.createServer((req, res) => {
     send(req, res, 200, data, type, cache, file + ":" + currentHash());
   });
 });
+
+// Slowloris-style attacks work by opening connections and trickling bytes in
+// just fast enough to never time out on Node's (fairly generous) defaults,
+// tying up sockets for as long as possible. Nothing legitimate here — a
+// static file server with no uploads — ever needs anywhere near this long.
+server.headersTimeout = 10_000;
+server.requestTimeout = 15_000;
+server.keepAliveTimeout = 8_000;
+server.maxHeadersCount = 50;
 
 server.listen(PORT, () => {
   console.log("HatoLog is being served on port " + PORT + " (build " + currentHash() + ")");
