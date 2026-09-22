@@ -10,7 +10,8 @@
     "@capacitor/android": "^6.1.2",
     "@capacitor/app": "^6.0.1",
     "@capacitor/browser": "^6.0.3",
-    "@capacitor/local-notifications": "^6.1.0"
+    "@capacitor/local-notifications": "^6.1.0",
+    "@capawesome-team/capacitor-android-battery-optimization": "^6.0.0"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.1.2",

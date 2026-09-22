@@ -29,7 +29,12 @@ const PERMISSIONS = [
   "android.permission.POST_NOTIFICATIONS",
   "android.permission.SCHEDULE_EXACT_ALARM",
   "android.permission.USE_EXACT_ALARM",
-  "android.permission.RECEIVE_BOOT_COMPLETED"
+  "android.permission.RECEIVE_BOOT_COMPLETED",
+  // Lets the app ask the OS directly (one system dialog, no trip to Settings)
+  // to stop battery-optimizing it — without this, many phones (Xiaomi, Samsung,
+  // Oppo/Realme and friends especially) silently kill the process in the
+  // background and cancelled-looking alerts never fire while the app is closed.
+  "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
 ];
 
 function addPermissions(doc) {

@@ -71,6 +71,10 @@ jobs:
         working-directory: android-project
         run: node patch-android-manifest.js
 
+      - name: Install HatoLog's heart as the notification icon
+        working-directory: android-project
+        run: node install-notification-icon.js
+
       - name: Generate app icon and splash screen
         working-directory: android-project
         run: npx @capacitor/assets generate --android

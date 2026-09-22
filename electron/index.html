@@ -243,8 +243,8 @@
     flex-wrap:wrap; border:1px solid var(--border);
   }
   nav.tabs button{
-    border:none; background:transparent; color:var(--text-muted); font-weight:600; font-size:0.92rem;
-    padding:9px 14px; border-radius:10px; cursor:pointer; transition:background .15s,color .15s,transform .1s;
+    border:none; background:transparent; color:var(--text-muted); font-weight:600; font-size:0.88rem;
+    padding:8px 12px; border-radius:10px; cursor:pointer; transition:background .15s,color .15s,transform .1s;
     display:inline-flex; align-items:center; gap:6px;
   }
   nav.tabs .tab-ico{ font-size:0.95em; line-height:1; }
@@ -357,6 +357,19 @@
   }
   .subtabs button:hover{ background:var(--hover-highlight); color:var(--text); }
   .subtabs button[aria-selected="true"]{ background:var(--accent-soft); color:var(--accent-ink); border-color:var(--accent-soft); }
+  /* On narrow screens a wrapped row of section buttons eats vertical space
+     before the actual content even starts — collapse it to one dropdown. */
+  .subtabs-select{ display:none; }
+  @media (max-width:700px){
+    .subtabs{ display:none; }
+    .subtabs-select{
+      display:block; width:100%; margin-bottom:16px; padding:10px 34px 10px 12px;
+      border-radius:12px; border:1px solid var(--border); background:var(--surface); color:var(--text);
+      font-size:0.9rem; font-weight:600; appearance:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat:no-repeat; background-position:right 10px center; background-size:16px;
+    }
+  }
 
   table{ width:100%; border-collapse:collapse; font-size:0.92rem; }
   thead th{
@@ -689,7 +702,14 @@
   .ct-alerts button[hidden]{ display:none !important; }
   .ct-list{ display:grid; gap:9px; }
   .dl-dropdown{ position:relative; }
-  .dl-dropdown-menu{
+  /* This unconditional display:flex was overriding the [hidden] attribute
+     outright (an author rule beats the browser's own [hidden]{display:none}
+     regardless of specificity or source order) — the menu was rendering open
+     at all times, and every JS open/close toggle was just changing an
+     attribute with no visible effect. Scoping it to :not([hidden]) and
+     forcing [hidden] shut is what actually lets JS hide it. */
+  .dl-dropdown-menu[hidden]{ display:none !important; }
+  .dl-dropdown-menu:not([hidden]){
     position:absolute; top:calc(100% + 8px); right:0; z-index:40;
     display:flex; flex-direction:column; gap:2px; min-width:200px;
     max-width:calc(100vw - 24px); box-sizing:border-box;
@@ -782,6 +802,16 @@
   }
   .fl-cycle-btn:hover{ background:var(--hover-highlight); color:var(--hover-highlight-text); }
   .fl-cycle-name{ min-width:52px; text-align:center; font-weight:600; }
+  /* A one-at-a-time carousel instead of a long grid of ladder images — step
+     through flowers with the arrows rather than scrolling past all of them. */
+  .fl-ladder{ border:1px solid var(--border); border-radius:16px; background:var(--surface); padding:14px; }
+  .fl-ladder-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .fl-ladder-nav{ width:34px; height:34px; border-radius:10px; flex:none; padding:0; font-size:0.72rem; }
+  .fl-ladder-title{ flex:1 1 auto; min-width:0; text-align:center; font-weight:700; font-size:0.98rem; }
+  .fl-ladder-title .item-label{ justify-content:center; min-width:0; }
+  .fl-ladder-title .item-label strong{ overflow-wrap:break-word; white-space:normal; }
+  .fl-ladder img{ width:100%; max-height:56vh; object-fit:contain; border-radius:12px; margin-top:12px; display:block; background:var(--surface-2); }
+  .fl-ladder-count{ text-align:center; font-size:0.76rem; color:var(--text-muted); margin-top:8px; }
   .ct-group{ grid-column:1/-1; font-size:0.78rem; font-weight:800; letter-spacing:0.05em;
     text-transform:uppercase; color:var(--text-muted); margin:6px 0 -2px; }
   .ct-group:first-child{ margin-top:0; }
@@ -2481,7 +2511,16 @@
       <div class="section-title" style="margin-top:22px;">
         <div><h2>Colour ladders</h2><p>Which crosses lead where, flower by flower.</p></div>
       </div>
-      <div class="fl-charts" id="fl-charts"></div>
+      <div class="fl-ladder" id="fl-ladder">
+        <div class="fl-ladder-head">
+          <button type="button" class="btn subtle small fl-ladder-nav" id="fl-ladder-prev" aria-label="Previous flower">&#9664;</button>
+          <div class="fl-ladder-title" id="fl-ladder-title"></div>
+          <button type="button" class="btn subtle small fl-ladder-nav" id="fl-ladder-next" aria-label="Next flower">&#9654;</button>
+        </div>
+        <img id="fl-ladder-img" alt="">
+        <p class="muted" id="fl-ladder-note" style="margin:10px 0 0;"></p>
+        <div class="fl-ladder-count" id="fl-ladder-count"></div>
+      </div>
       <div class="notice" style="margin-top:12px;">Ladder charts by <strong>hiimaa_44</strong>, collected in AthenaMM's community sheet; the Highland Poppy one is AthenaMM's own working notes. Both are reproduced here as they were shared.</div>
     </div>
 
@@ -2749,6 +2788,11 @@
         <div class="set-row-text"><strong>Notifications</strong>
           <span class="muted" id="set-notify-note">A pop-up when a timer finishes, even if this isn't the tab you're looking at.</span></div>
         <button type="button" class="btn subtle small" id="set-notify">🔔 Enable alerts</button>
+      </div>
+      <div class="set-row" id="set-battery-row" hidden>
+        <div class="set-row-text"><strong>Background reliability</strong>
+          <span class="muted" id="set-battery-note">Some phones cancel alerts while the app is closed unless it's exempted from battery optimization.</span></div>
+        <button type="button" class="btn subtle small" id="set-battery-btn">🔋 Fix background alerts</button>
       </div>
       <div class="set-row">
         <div class="set-row-text"><strong>Sound</strong>
@@ -4791,6 +4835,38 @@
   wireTabGroup('.subtabs[aria-label="Calculator sections"] > button', null, true);
   wireTabGroup('.subtabs[aria-label="Tracker sections"] > button', null, true);
 
+  // A dropdown twin of each section row, shown instead of it on narrow screens
+  // (see .subtabs-select) so switching sections doesn't cost a wrapped row of
+  // buttons' worth of vertical space before the content even starts.
+  function addSubtabsSelect(navSelector){
+    var nav = document.querySelector(navSelector);
+    if(!nav) return;
+    var buttons = Array.prototype.slice.call(nav.querySelectorAll("button"));
+    if(!buttons.length) return;
+    var select = document.createElement("select");
+    select.className = "subtabs-select";
+    select.setAttribute("aria-label", nav.getAttribute("aria-label") || "Section");
+    buttons.forEach(function(btn, i){
+      var opt = document.createElement("option");
+      opt.value = String(i);
+      opt.textContent = btn.textContent;
+      opt.disabled = !!btn.disabled;
+      if(btn.getAttribute("aria-selected") === "true") opt.selected = true;
+      select.appendChild(opt);
+    });
+    select.addEventListener("change", function(){
+      var btn = buttons[parseInt(select.value, 10)];
+      if(btn && !btn.disabled) btn.click();
+    });
+    buttons.forEach(function(btn, i){
+      btn.addEventListener("click", function(){ select.value = String(i); });
+    });
+    nav.parentElement.insertBefore(select, nav);
+  }
+  addSubtabsSelect('.subtabs[aria-label="Wiki sections"]');
+  addSubtabsSelect('.subtabs[aria-label="Calculator sections"]');
+  addSubtabsSelect('.subtabs[aria-label="Tracker sections"]');
+
   // Main-menu tool cards, and the Daily/Weekly stat tiles, jump to a top-level tab.
   // Anything carrying data-goto jumps to that tab — not just the menu cards.
   // Buttons added later (the weather card's, the dailies card's) were being
@@ -4814,31 +4890,44 @@
     }
     var btn = document.getElementById("dl-dropdown-btn");
     var menu = document.getElementById("dl-dropdown-menu");
+    var closeTimer = null;
+    function open(){
+      if(closeTimer){ clearTimeout(closeTimer); closeTimer = null; }
+      menu.hidden = false;
+      btn.setAttribute("aria-expanded", "true");
+    }
+    function close(){
+      menu.hidden = true;
+      btn.setAttribute("aria-expanded", "false");
+    }
+    function closeSoon(){
+      // A short delay, not an instant close, so moving the cursor from the
+      // button down into the menu doesn't get read as "left the dropdown".
+      if(closeTimer) clearTimeout(closeTimer);
+      closeTimer = setTimeout(close, 150);
+    }
+    // Hover is the primary way in on a mouse; a tap/click still works for
+    // touch screens and keyboard users, where hover doesn't exist at all.
+    dl.addEventListener("mouseenter", open);
+    dl.addEventListener("mouseleave", closeSoon);
+    dl.addEventListener("focusin", open);
+    dl.addEventListener("focusout", function(e){
+      if(!dl.contains(e.relatedTarget)) closeSoon();
+    });
     btn.addEventListener("click", function(e){
       e.stopPropagation();
-      var open = menu.hidden;
-      menu.hidden = !open;
-      btn.setAttribute("aria-expanded", open ? "true" : "false");
+      if(menu.hidden) open(); else close();
     });
     document.addEventListener("click", function(e){
-      if(!menu.hidden && !dl.contains(e.target)){
-        menu.hidden = true;
-        btn.setAttribute("aria-expanded", "false");
-      }
+      if(!menu.hidden && !dl.contains(e.target)) close();
     });
     document.addEventListener("keydown", function(e){
-      if(e.key === "Escape" && !menu.hidden){
-        menu.hidden = true;
-        btn.setAttribute("aria-expanded", "false");
-      }
+      if(e.key === "Escape" && !menu.hidden) close();
     });
     // Clicking a download link doesn't navigate this page away (it's a file
     // download), so nothing else here ever closes the menu afterward.
     menu.querySelectorAll("a").forEach(function(a){
-      a.addEventListener("click", function(){
-        menu.hidden = true;
-        btn.setAttribute("aria-expanded", "false");
-      });
+      a.addEventListener("click", close);
     });
   })();
 
@@ -4888,23 +4977,6 @@
       });
       return opts;
     }
-    // We only have one rendered image per flower, so a colour other than its
-    // native one is approximated with a hue-rotate tint rather than a real asset.
-    function hueOf(hex){
-      var r = parseInt(hex.slice(1,3),16)/255, gg = parseInt(hex.slice(3,5),16)/255, b = parseInt(hex.slice(5,7),16)/255;
-      var max = Math.max(r,gg,b), min = Math.min(r,gg,b), d = max-min, h = 0;
-      if(d !== 0){
-        if(max === r) h = 60*(((gg-b)/d) % 6);
-        else if(max === gg) h = 60*((b-r)/d + 2);
-        else h = 60*((r-gg)/d + 4);
-      }
-      if(h < 0) h += 360;
-      return h;
-    }
-    function tintFor(hex){
-      var rotate = Math.round(hueOf(hex) - 40); // sepia()'s own hue sits around 40deg
-      return "grayscale(1) sepia(1) saturate(5) hue-rotate("+rotate+"deg) brightness(1.05)";
-    }
     function flowerRow(f){
       var tr = document.createElement("tr");
       var opts = colourOptionsFor(f);
@@ -4921,7 +4993,10 @@
         "<td class='num-cell'>"+f[3]+"g</td>"+
         "<td class='num-cell'>"+fmtMin(f[2])+"</td>"+
         f[4].map(function(v){ return "<td class='num-cell'>"+g(v)+"</td>"; }).join("");
-      if(opts.length > 1) tr.dataset.flColours = JSON.stringify(opts);
+      if(opts.length > 1){
+        tr.dataset.flColours = JSON.stringify(opts);
+        tr.dataset.flName = f[0];
+      }
       return tr;
     }
     function groupRow(label){
@@ -4942,7 +5017,70 @@
     // tints to preview each one (index 0 is left as the flower's real render).
     // Hovering that same thumbnail previews them too, cycling on its own and
     // settling back on the way out.
+    //
+    // Only the bloom itself is recoloured, never the stem/leaves: this reads
+    // every pixel's own hue and leaves anything in the green band alone, then
+    // shifts everything else toward the target colour. That needs real pixel
+    // access (a canvas), not a CSS filter, which recolours the whole image
+    // uniformly. Each (flower, colour) result is rendered once and cached.
     (function(){
+      var TINT_CACHE = {};
+      function rgbToHsl(r, g, b){
+        r/=255; g/=255; b/=255;
+        var max=Math.max(r,g,b), min=Math.min(r,g,b), h=0, s=0, l=(max+min)/2, d=max-min;
+        if(d !== 0){
+          s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+          if(max===r) h = 60*(((g-b)/d) % 6);
+          else if(max===g) h = 60*((b-r)/d + 2);
+          else h = 60*((r-g)/d + 4);
+          if(h<0) h+=360;
+        }
+        return { h:h, s:s, l:l };
+      }
+      function hslToRgb(h, s, l){
+        var c = (1 - Math.abs(2*l - 1)) * s;
+        var x = c * (1 - Math.abs((h/60) % 2 - 1));
+        var m = l - c/2, r,gg,b;
+        if(h<60){ r=c;gg=x;b=0; } else if(h<120){ r=x;gg=c;b=0; } else if(h<180){ r=0;gg=c;b=x; }
+        else if(h<240){ r=0;gg=x;b=c; } else if(h<300){ r=x;gg=0;b=c; } else { r=c;gg=0;b=x; }
+        return { r:Math.round((r+m)*255), g:Math.round((gg+m)*255), b:Math.round((b+m)*255) };
+      }
+      function hexToHsl(hex){
+        return rgbToHsl(parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16));
+      }
+      function tintedSrc(name, hex){
+        var cacheKey = name + "|" + hex;
+        if(TINT_CACHE[cacheKey]) return Promise.resolve(TINT_CACHE[cacheKey]);
+        var base = ITEM_IMAGES[name];
+        if(!base) return Promise.resolve(null);
+        return new Promise(function(resolve){
+          var img = new Image();
+          img.onload = function(){
+            var w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+            if(!w || !h){ resolve(base); return; }
+            var c = document.createElement("canvas"); c.width = w; c.height = h;
+            var ctx = c.getContext("2d");
+            ctx.drawImage(img, 0, 0, w, h);
+            var data;
+            try{ data = ctx.getImageData(0, 0, w, h); }catch(e){ resolve(base); return; }
+            var px = data.data;
+            var target = hexToHsl(hex);
+            for(var i=0; i<px.length; i+=4){
+              if(px[i+3] === 0) continue;
+              var hsl = rgbToHsl(px[i], px[i+1], px[i+2]);
+              if(hsl.h >= 65 && hsl.h <= 175) continue; // stem/leaf green — left untouched
+              var rgb = hslToRgb(target.h, Math.max(hsl.s, target.s * 0.85), hsl.l);
+              px[i] = rgb.r; px[i+1] = rgb.g; px[i+2] = rgb.b;
+            }
+            ctx.putImageData(data, 0, 0);
+            var out = c.toDataURL("image/png");
+            TINT_CACHE[cacheKey] = out;
+            resolve(out);
+          };
+          img.onerror = function(){ resolve(base); };
+          img.src = base;
+        });
+      }
       function applyColour(tr, idx){
         var opts = JSON.parse(tr.dataset.flColours);
         idx = ((idx % opts.length) + opts.length) % opts.length;
@@ -4950,7 +5088,12 @@
         cyc.dataset.idx = idx;
         cyc.querySelector(".fl-cycle-name").textContent = opts[idx].name;
         var img = tr.querySelector("img.item-thumb");
-        if(img) img.style.filter = idx === 0 ? "" : tintFor(opts[idx].hex);
+        if(!img) return;
+        var name = tr.dataset.flName;
+        if(idx === 0){ img.src = ITEM_IMAGES[name]; return; }
+        tintedSrc(name, opts[idx].hex).then(function(src){
+          if(src && cyc.dataset.idx == idx) img.src = src;
+        });
       }
       body.addEventListener("click", function(e){
         var btn = e.target.closest(".fl-cycle-btn");
@@ -5008,11 +5151,28 @@
       '<img src="'+FLOWER_GUIDE_IMG.stars+'" alt="Star ratings behind each flower colour, and why matching stars breeds better">'+
       '<img src="'+FLOWER_GUIDE_IMG.how+'" alt="Alternate planting, watering, and the seed that results; watering levels shown as sparkles up to five">';
 
-    document.getElementById("fl-charts").innerHTML = FLOWER_CHARTS.map(function(c){
-      return '<div class="fl-chart"><h4>'+labelWithArt(c.n, true, false)+'</h4>'+
-             '<img src="'+c.src+'" alt="Crossbreeding ladder for '+escapeHtml(c.n)+'" loading="lazy">'+
-             '<span class="muted">'+escapeHtml(c.c)+'</span></div>';
-    }).join("");
+    (function(){
+      var titleEl = document.getElementById("fl-ladder-title");
+      var imgEl = document.getElementById("fl-ladder-img");
+      var noteEl = document.getElementById("fl-ladder-note");
+      var countEl = document.getElementById("fl-ladder-count");
+      var prevBtn = document.getElementById("fl-ladder-prev");
+      var nextBtn = document.getElementById("fl-ladder-next");
+      if(!titleEl || !FLOWER_CHARTS.length) return;
+      var idx = 0;
+      function paint(){
+        var c = FLOWER_CHARTS[idx];
+        titleEl.innerHTML = labelWithArt(c.n, true, false);
+        imgEl.src = c.src;
+        imgEl.alt = "Crossbreeding ladder for " + c.n;
+        noteEl.textContent = c.c || "";
+        noteEl.hidden = !c.c;
+        countEl.textContent = (idx+1) + " of " + FLOWER_CHARTS.length;
+      }
+      prevBtn.addEventListener("click", function(){ idx = (idx - 1 + FLOWER_CHARTS.length) % FLOWER_CHARTS.length; paint(); });
+      nextBtn.addEventListener("click", function(){ idx = (idx + 1) % FLOWER_CHARTS.length; paint(); });
+      paint();
+    })();
   })();
 
   var bpBody = document.querySelector("#blueprints-table tbody");
@@ -6679,6 +6839,34 @@
     proxy("set-notify","ct-notify");
     proxy("set-sound","ct-sound");
     proxy("set-flash","ct-flash");
+
+    // Only a real Android build has anything to fix here — the plugin behind
+    // this is a no-op (and simply absent) on desktop, web, and iOS.
+    (function(){
+      var row = document.getElementById("set-battery-row");
+      var btn = document.getElementById("set-battery-btn");
+      var note = document.getElementById("set-battery-note");
+      if(!row || !btn || !window.HH_NOTIFY || !HH_NOTIFY.hasBatteryControl) return;
+      row.hidden = false;
+      function paint(){
+        HH_NOTIFY.isBatteryOptimized().then(function(optimized){
+          if(optimized === false){
+            btn.textContent = "🔋 Background alerts fixed";
+            btn.disabled = true;
+            note.textContent = "This app is exempted from battery optimization — timers can still alert you while it's closed.";
+          }else{
+            btn.textContent = "🔋 Fix background alerts";
+            btn.disabled = false;
+            note.textContent = "Some phones cancel alerts while the app is closed unless it's exempted from battery optimization.";
+          }
+        });
+      }
+      btn.addEventListener("click", function(){
+        HH_NOTIFY.requestBatteryExemption().then(function(){ setTimeout(paint, 400); });
+      });
+      paint();
+    })();
+
     // The Croptimer sets its own button labels on load; mirror once it has.
     setTimeout(mirror, 0);
     var tab = document.querySelector('nav.tabs > button[data-tab="settings"]');
@@ -7113,6 +7301,30 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       }
     }
 
+    // A dedicated high-importance channel (Android 8+ requires one either way)
+    // so a crop/weed alert actually pops up rather than landing silently at
+    // default importance, and so it consistently carries HatoLog's own heart
+    // icon/colour instead of whatever channel Capacitor would otherwise infer.
+    var CHANNEL_ID = "hh-timers";
+    if(capLN && capLN.createChannel){
+      capLN.createChannel({
+        id: CHANNEL_ID,
+        name: "Crop & timer alerts",
+        description: "A crop, flower, or weed timer finishing",
+        importance: 5,
+        visibility: 1,
+        vibration: true
+      }).catch(function(){});
+    }
+
+    // Battery optimization is the other big reason a scheduled alert never
+    // shows on a closed phone: several manufacturers (Xiaomi/MIUI, Samsung,
+    // Oppo/Realme, Vivo...) kill backgrounded apps hard enough to cancel their
+    // pending alarms outright, regardless of the exact-alarm permissions
+    // already declared in the manifest. This plugin is Android-only and a
+    // no-op everywhere else (including this same app on desktop/web).
+    var battOpt = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BatteryOptimization) || null;
+
     function ensure(){
       if(granted) return Promise.resolve(true);
       if(kind === "capacitor"){
@@ -7166,6 +7378,9 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
               id: 9000 + n,
               title: i.title,
               body: i.body,
+              channelId: CHANNEL_ID,
+              smallIcon: "ic_stat_hatolog",
+              iconColor: "#e0459a",
               schedule: { at: new Date(i.at), allowWhileIdle: true }
             };
           }) });
@@ -7180,7 +7395,18 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       isEnabled: function(){ return enabled; },
       setEnabled: setEnabled,
       ensure: ensure,
-      schedule: schedule
+      schedule: schedule,
+      // undefined when the plugin isn't there (anything but a real Android
+      // build) — callers check this before offering the battery-fix button.
+      hasBatteryControl: !!battOpt,
+      isBatteryOptimized: function(){
+        if(!battOpt) return Promise.resolve(null);
+        return battOpt.isBatteryOptimizationEnabled().then(function(r){ return !!(r && r.enabled); }).catch(function(){ return null; });
+      },
+      requestBatteryExemption: function(){
+        if(!battOpt) return Promise.resolve(false);
+        return battOpt.requestIgnoreBatteryOptimization().then(function(){ return true; }).catch(function(){ return false; });
+      }
     };
   })();
 
@@ -8321,7 +8547,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
   var IS_CAPACITOR = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
   var NEEDS_EXTERNAL_BROWSER = IS_ELECTRON || IS_CAPACITOR;
 
-  var auth, db, provider, fsDoc, fsGetDoc, fsSetDoc, signInWithPopup, signInWithCredential, googleCredentialFromIdToken, signOut, onAuthStateChanged;
+  var auth, db, provider, fsDoc, fsGetDoc, fsSetDoc, onSnapshot, signInWithPopup, signInWithCredential, googleCredentialFromIdToken, signOut, onAuthStateChanged;
   try{
     var mods = await Promise.all([
       import("./vendor/firebase-app.js"),
@@ -8338,7 +8564,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     signOut = mods[1].signOut;
     onAuthStateChanged = mods[1].onAuthStateChanged;
     db = mods[2].getFirestore(app);
-    fsDoc = mods[2].doc; fsGetDoc = mods[2].getDoc; fsSetDoc = mods[2].setDoc;
+    fsDoc = mods[2].doc; fsGetDoc = mods[2].getDoc; fsSetDoc = mods[2].setDoc; onSnapshot = mods[2].onSnapshot;
   }catch(e){
     console.warn("HatoLog: cloud sign-in unavailable (Firebase didn't load).", e);
     return;
@@ -8422,15 +8648,21 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
   var currentUid = null;
   // Guards against the window between "signed in" and "finished pulling this
   // account's cloud data": currentUid is set the instant sign-in resolves, but
-  // fsGetDoc below is async. Anything that calls save() in that gap (a stray
-  // render, a periodic tick, this device's own pre-sync local state) used to
-  // be pushed straight to the cloud and permanently overwrite whatever another
-  // device — mid-timer or not — had already saved there. This flag keeps the
-  // cloud read-only for this device until its own pull has actually landed.
+  // the first snapshot below arrives asynchronously. Anything that calls
+  // save() in that gap (a stray render, a periodic tick, this device's own
+  // pre-sync local state) used to be pushed straight to the cloud and
+  // permanently overwrite whatever another device — mid-timer or not — had
+  // already saved there. This flag keeps the cloud read-only for this device
+  // until its own first read has actually landed.
   var cloudReady = false;
+  // True only while this device is applying a change that just arrived FROM
+  // the cloud, so that replaceState's own local save doesn't get echoed
+  // straight back up as if the person had made it here.
+  var applyingRemote = false;
   var syncTimer = null;
+  var unsubscribeSnapshot = null;
   window.__hh.onSave(function(state){
-    if(!currentUid || !cloudReady) return;
+    if(!currentUid || !cloudReady || applyingRemote) return;
     clearTimeout(syncTimer);
     syncTimer = setTimeout(function(){
       fsSetDoc(fsDoc(db, "users", currentUid), state).catch(function(e){
@@ -8439,25 +8671,41 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     }, 800);
   });
 
-  onAuthStateChanged(auth, async function(user){
+  onAuthStateChanged(auth, function(user){
+    if(unsubscribeSnapshot){ unsubscribeSnapshot(); unsubscribeSnapshot = null; }
     if(!user){ currentUid = null; cloudReady = false; renderSignedOut(); return; }
     currentUid = user.uid;
     cloudReady = false;
     renderSignedIn(user);
-    try{
-      var snap = await fsGetDoc(fsDoc(db, "users", user.uid));
+
+    // A live listener rather than a one-time read: this is what actually
+    // keeps two open devices in step with each other going forward. A
+    // one-time fetch only ever picked up another device's changes at the
+    // moment THIS device happened to sign in — a timer started on the
+    // website stayed invisible on a phone whose app was already open,
+    // sometimes indefinitely, which is exactly what wasn't syncing.
+    var ref = fsDoc(db, "users", user.uid);
+    var seeded = false;
+    unsubscribeSnapshot = onSnapshot(ref, function(snap){
       if(snap.exists()){
-        window.__hh.replaceState(snap.data());
-      }else{
-        fsSetDoc(fsDoc(db, "users", user.uid), window.__hh.getState()).catch(function(e){
+        // A write this same device just made echoes straight back from the
+        // local cache before the server even confirms it — applying that
+        // echo would just mean reprocessing our own change a moment later.
+        if(snap.metadata.hasPendingWrites){ cloudReady = true; return; }
+        applyingRemote = true;
+        try{ window.__hh.replaceState(snap.data()); }
+        finally{ applyingRemote = false; }
+      }else if(!seeded){
+        seeded = true;
+        fsSetDoc(ref, window.__hh.getState()).catch(function(e){
           console.warn("HatoLog: initial cloud save failed.", e);
         });
       }
-    }catch(e){
-      console.warn("HatoLog: cloud load failed — continuing with local data.", e);
-    }finally{
       cloudReady = true;
-    }
+    }, function(e){
+      console.warn("HatoLog: cloud sync unavailable — continuing with local data.", e);
+      cloudReady = true;
+    });
   });
 })();
 </script>
