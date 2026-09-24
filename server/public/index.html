@@ -623,6 +623,53 @@
     font-size:0.72rem; font-weight:700; color:var(--accent-ink);
     background:var(--accent-soft); border-radius:999px; padding:1px 7px;
   }
+  /* Order machine cards, styled after the in-game order screen */
+  :root{ --om-panel:#BFE6EF; --om-bubble:#E8F6FA; --om-right:#FFFFFF; --om-teal:#3CC9BF; --om-teal-ink:#1E9E95; --om-text:#4A4F63; --om-ghost:#EEF1F5; --om-ghost-ink:#5A6275; --om-deco:rgba(255,255,255,0.45); }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){ --om-panel:#23485A; --om-bubble:#2F5B6E; --om-right:#221A38; --om-teal:#34B8AE; --om-teal-ink:#5FD9CF; --om-text:#D9D3EA; --om-ghost:#3A2F55; --om-ghost-ink:#CFC7E6; --om-deco:rgba(255,255,255,0.08); }
+  }
+  :root[data-theme="dark"]{ --om-panel:#23485A; --om-bubble:#2F5B6E; --om-right:#221A38; --om-teal:#34B8AE; --om-teal-ink:#5FD9CF; --om-text:#D9D3EA; --om-ghost:#3A2F55; --om-ghost-ink:#CFC7E6; --om-deco:rgba(255,255,255,0.08); }
+  .ct-row.om-card{ display:grid; padding:0; gap:0; align-items:stretch; background:none; }
+  .ct-row.om-card.ready{ background:none; border-color:var(--om-teal); }
+  .om-card{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr); border-radius:22px; overflow:hidden; box-shadow:0 10px 26px -14px rgba(40,40,90,0.45); border:1px solid var(--border); }
+  .om-left{ position:relative; background:var(--om-panel); min-height:220px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:18px 14px 16px 64px;
+    background-image:radial-gradient(circle at 18% 22%, var(--om-deco) 0 9px, transparent 10px), radial-gradient(circle at 82% 70%, var(--om-deco) 0 12px, transparent 13px), radial-gradient(circle at 70% 18%, var(--om-deco) 0 6px, transparent 7px); }
+  .om-bubble{ position:relative; width:128px; height:128px; border-radius:50%; background:var(--om-bubble); display:flex; align-items:center; justify-content:center; font-size:58px; line-height:1; box-shadow:inset 0 -4px 0 rgba(0,0,0,0.04); }
+  .om-bubble::after{ content:""; position:absolute; left:6px; bottom:4px; width:26px; height:26px; background:var(--om-bubble); clip-path:polygon(0 100%, 100% 0, 100% 60%); transform:translate(-14px, 8px); }
+  .om-machine{ position:absolute; left:8px; bottom:10px; width:64px; height:auto; filter:drop-shadow(0 4px 4px rgba(0,0,0,0.18)); }
+  .om-label{ margin-top:12px; max-width:100%; background:var(--om-bubble); color:var(--om-text); border-radius:14px; padding:6px 14px; font-weight:600; font-size:0.9rem; text-align:center; line-height:1.3; overflow-wrap:anywhere; }
+  .om-right{ background:var(--om-right); padding:18px 20px; display:flex; flex-direction:column; gap:10px; justify-content:center; }
+  .om-caption{ margin:0; text-align:center; color:var(--om-teal-ink); font-weight:600; font-size:0.9rem; }
+  .om-pill{ display:flex; align-items:center; justify-content:center; gap:10px; background:var(--om-teal); color:#fff; border-radius:16px; padding:10px 14px; font-size:1.7rem; font-weight:800; letter-spacing:0.01em; font-variant-numeric:tabular-nums; }
+  .om-pill svg{ width:30px; height:30px; flex:none; }
+  .om-bar{ height:6px; border-radius:99px; background:var(--om-ghost); overflow:hidden; }
+  .om-bar > span{ display:block; height:100%; background:var(--om-teal); border-radius:inherit; }
+  .om-note{ margin:0; color:var(--om-text); font-size:0.84rem; line-height:1.45; }
+  .om-actions{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:4px; }
+  .om-btn{ font:inherit; font-weight:700; font-size:0.95rem; border:0; border-radius:999px; padding:10px 12px; cursor:pointer; background:var(--om-teal); color:#fff; box-shadow:0 3px 0 rgba(0,0,0,0.12); }
+  .om-btn.ghost{ background:var(--om-ghost); color:var(--om-ghost-ink); }
+  .om-btn:hover{ filter:brightness(1.05); } .om-btn:active{ transform:translateY(1px); box-shadow:0 2px 0 rgba(0,0,0,0.12); }
+  .om-card.ready .om-pill{ background:linear-gradient(90deg, var(--om-teal), #5FD38A); }
+  @media (max-width:560px){
+    .om-card{ grid-template-columns:1fr; }
+    .om-left{ min-height:190px; }
+    .om-pill{ font-size:1.45rem; }
+  }
+  .om-cats{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .om-form{ display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap; }
+  .om-field{ display:grid; gap:4px; font-size:0.78rem; font-weight:700; color:var(--text-muted); }
+  .om-name{ flex:1 1 220px; min-width:0; }
+  .om-name input{ font:inherit; font-size:0.92rem; font-weight:500; color:var(--text); background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 10px; width:100%; box-sizing:border-box; }
+  .ct-tag.order{ background:var(--accent-soft); color:var(--accent-ink); }
+  .fish-filters{ display:grid; gap:10px; }
+  .ff-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .ff-label{ font-size:0.78rem; font-weight:700; color:var(--text-muted); min-width:62px; }
+  #ff-wx > button[aria-pressed="false"]{ opacity:0.45; }
+  .ff-selects{ display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:8px; }
+  .ff-selects label{ min-width:0; display:grid; gap:3px; font-size:0.74rem; font-weight:700; color:var(--text-muted); }
+  .ff-selects select{ font:inherit; font-size:0.85rem; font-weight:500; color:var(--text); background:var(--surface-2, var(--surface)); border:1px solid var(--border); border-radius:8px; padding:6px 8px; width:100%; min-width:0; box-sizing:border-box; }
+  .ff-foot{ display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:0.82rem; }
+  #fish-table td.ff-hi{ font-weight:700; color:var(--accent-ink); }
   .map-animal{ display:flex; gap:9px; align-items:center; padding:4px 0; }
   .map-animal + .map-animal{ border-top:1px solid var(--border); }
   .map-animal-shot{ width:64px; height:44px; object-fit:cover; border-radius:8px; flex:none; background:var(--surface-2); }
@@ -2497,17 +2544,49 @@
 
     <div class="subpanel" id="wiki-fish" style="display:none;">
       <div class="section-title">
-        <div><h2>Fish</h2><p>Every catch in the game &mdash; level, weather, active hours, shadow size and 5&#9733; sell price. See the Map tab for where each one bites.</p></div>
+        <div><h2>Fish</h2><p>Every catch in the game &mdash; level, weather, active hours, shadow size and sell price at each star rating. See the Map tab for where each one bites.</p></div>
       </div>
-      <div class="tbl-search-box">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="16.2" y1="16.2" x2="21" y2="21"></line></svg>
-        <input type="text" id="fish-search" placeholder="Search fish…" aria-label="Search fish">
+      <div class="card fish-filters">
+        <div class="tbl-search-box" style="margin:0;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="16.2" y1="16.2" x2="21" y2="21"></line></svg>
+          <input type="text" id="fish-search" placeholder="Search fish…" aria-label="Search fish">
+        </div>
+        <div class="ff-row">
+          <span class="ff-label">Price at</span>
+          <div class="map-filter" id="ff-star" role="group" aria-label="Star rating price">
+            <button type="button" class="btn subtle small" data-star="1" aria-pressed="false">&#9733;1</button>
+            <button type="button" class="btn subtle small" data-star="2" aria-pressed="false">&#9733;2</button>
+            <button type="button" class="btn subtle small" data-star="3" aria-pressed="false">&#9733;3</button>
+            <button type="button" class="btn subtle small" data-star="4" aria-pressed="false">&#9733;4</button>
+            <button type="button" class="btn subtle small" data-star="5" aria-pressed="true">&#9733;5</button>
+            <button type="button" class="btn subtle small" data-star="all" aria-pressed="false">All stars</button>
+          </div>
+        </div>
+        <div class="ff-row">
+          <span class="ff-label">Weather</span>
+          <div class="map-filter" id="ff-wx" role="group" aria-label="Weather">
+            <button type="button" class="btn subtle small" data-wx="S" aria-pressed="true">☀️ Sunny</button>
+            <button type="button" class="btn subtle small" data-wx="R" aria-pressed="true">🌧️ Rain</button>
+            <button type="button" class="btn subtle small" data-wx="N" aria-pressed="true">❄️ Snow</button>
+            <button type="button" class="btn subtle small" data-wx="B" aria-pressed="true">🌈 Rainbow</button>
+          </div>
+        </div>
+        <div class="ff-selects">
+          <label>Water<select id="ff-water"><option value="">All</option><option value="sea">Sea</option><option value="lake">Lake</option><option value="river">River</option></select></label>
+          <label>Location<select id="ff-loc"><option value="">Anywhere</option></select></label>
+          <label>Shadow<select id="ff-shadow"><option value="">Any</option><option>Small</option><option>Medium</option><option>Large</option><option>Golden</option><option>Blue</option></select></label>
+          <label>Hours<select id="ff-time"><option value="">Any</option><option value="all">All day only</option><option value="limited">Limited hours</option></select></label>
+          <label>Level<select id="ff-lv"><option value="">Any</option></select></label>
+          <label>Sort<select id="ff-sort"><option value="lv">Level</option><option value="pdesc">Price: high → low</option><option value="pasc">Price: low → high</option><option value="name">Name</option></select></label>
+        </div>
+        <div class="ff-foot"><span id="ff-count" class="muted"></span><button type="button" class="btn subtle small" id="ff-reset">Reset filters</button></div>
       </div>
-      <div class="card table-wrap">
+      <div class="card table-wrap" style="margin-top:12px;">
         <table id="fish-table">
-          <thead><tr><th>Fish</th><th class="num-cell">Lv</th><th>Weather</th><th>Active hours</th><th>Shadow</th><th class="num-cell">5&#9733; price</th><th>Found at</th></tr></thead>
+          <thead></thead>
           <tbody></tbody>
         </table>
+        <div class="tbl-search-empty" id="fish-empty" hidden>No fish match those filters.</div>
       </div>
       <div class="notice" style="margin-top:12px;">Levels, weather, hours, shadow sizes and prices from AthenaMM's community sheet.</div>
     </div>
@@ -2849,8 +2928,31 @@
     </div>
 
     <div class="card">
+      <h3 class="ct-heading">Order machine</h3>
+      <p class="muted" style="margin:-4px 0 12px;font-size:0.86rem;">Name the order and how long it takes. It gets alerts and syncs like a crop timer.</p>
+      <div class="om-cats" id="om-cats" role="group" aria-label="Order type">
+        <button type="button" class="btn subtle small" data-cat="furniture" aria-pressed="true">🪑 Furniture</button>
+        <button type="button" class="btn subtle small" data-cat="clothing" aria-pressed="false">👗 Clothing</button>
+        <button type="button" class="btn subtle small" data-cat="other" aria-pressed="false">📦 Other</button>
+      </div>
+      <div class="om-form">
+        <label class="om-field om-name">Name
+          <input type="text" id="om-name" maxlength="60" placeholder="e.g. Wooden Chair ×4" autocomplete="off">
+        </label>
+        <label class="om-field">Time
+          <span class="ct-custom-row" style="margin:0;">
+            <input type="number" id="om-hours" min="0" max="240" step="1" value="1" aria-label="Hours"> <span class="muted">h</span>
+            <input type="number" id="om-mins" min="0" max="59" step="1" value="0" aria-label="Minutes"> <span class="muted">m</span>
+          </span>
+        </label>
+        <button type="button" class="btn" id="om-add">Start order</button>
+      </div>
+      <span class="muted ct-status" id="om-status" style="display:block;margin-top:8px;"></span>
+    </div>
+
+    <div class="card">
       <div class="ct-growing">
-        <h3 class="ct-heading" style="margin:0;">Growing</h3>
+        <h3 class="ct-heading" style="margin:0;">Active timers</h3>
         <div class="ct-alerts">
           <button type="button" class="btn subtle small" id="ct-notify">🔔 Enable alerts</button>
           <button type="button" class="btn subtle small" id="ct-sound" aria-pressed="true">🔊 Sound</button>
@@ -2859,7 +2961,7 @@
         </div>
       </div>
       <div id="ct-list" class="ct-list"></div>
-      <p class="empty" id="ct-empty">Nothing growing yet. Pick a crop above and start a timer.</p>
+      <p class="empty" id="ct-empty">Nothing running yet. Plant a crop or start an order above.</p>
     </div>
   </section>
 
@@ -5950,24 +6052,111 @@
     }).join("");
   })();
 
+  // Star-rating sell prices per fish (★1–★5), from AthenaMM's sheet.
+  var FISH_PRICES = {"Striped Red Mullet":[320,480,640,1280,2560],"Common Octopus":[320,480,640,1280,2560],"Anglerfish":[320,480,640,1280,2560],"Turbot":[320,480,640,1280,2560],"European Flying Squid":[320,480,640,1280,2560],"Nursehound":[535,802,1070,2140,4280],"Giant Oarfish":[535,802,1070,2140,4280],"Golden King Crab":[850,1275,1700,3400,6800],"Moonfish":[850,1275,1700,3400,6800],"Shortfin Mako Shark":[850,1275,1700,3400,6800],"Sardine":[50,75,100,200,400],"Sea Bass":[75,112,150,300,600],"Skipjack Tuna":[210,315,420,840,1680],"Rabbit Fish":[320,480,640,1280,2560],"Beltfish":[105,157,210,420,840],"Atlantic Pygmy Octopus":[150,225,300,600,1200],"False Scad":[155,232,310,620,1240],"European Lobster":[230,345,460,920,1840],"Blackspot Seabream":[230,345,460,920,1840],"Bluefin Tuna":[850,1275,1700,3400,6800],"Common Prawn":[50,75,100,200,400],"Hermit Crab":[100,150,200,400,800],"Goby":[150,225,300,600,1200],"Tub Gurnard":[380,570,760,1520,3040],"Haddock":[230,345,460,920,1840],"Ocean Sunfish":[850,1275,1700,3400,6800],"Scad":[50,75,100,200,400],"Seahorse":[100,150,200,400,800],"Atlantic Salmon":[155,232,310,620,1240],"Atlantic Mackerel":[150,225,300,600,1200],"King Crab":[535,802,1070,2140,4280],"Swordfish":[850,1275,1700,3400,6800],"Sea Stickleback":[50,75,100,200,400],"Clownfish":[100,150,200,400,800],"European Plaice":[230,345,460,920,1840],"Pufferfish":[230,345,460,920,1840],"European Eel":[380,570,760,1520,3040],"Smooth Hammerhead":[850,1275,1700,3400,6800],"Common Bleak":[50,75,100,200,400],"Common Chub":[75,112,150,300,600],"Edible Frog":[320,480,640,1280,2560],"Tench":[50,75,100,200,400],"Largemouth Bass":[230,345,460,920,1840],"Mud Sunfish":[100,150,200,400,800],"European Crayfish":[100,150,200,400,800],"Large Pearl Mussel":[380,570,760,1520,3040],"Blue European Crayfish":[250,375,500,1000,2000],"Arctic Char":[610,915,1220,2440,4880],"European Smelt":[100,150,200,400,800],"Trout":[230,345,460,920,1840],"Butterfly Koi":[320,480,640,1280,2560],"Goldfish":[250,375,500,1000,2000],"Wels Catfish":[610,915,1220,2440,4880],"Crucian Carp":[75,112,150,300,600],"Schneider":[50,75,100,200,400],"Stone Loach":[100,150,200,400,800],"Mussel":[100,150,200,400,800],"River Crab":[100,150,200,400,800],"Common Rudd":[150,225,300,600,1200],"Grayling":[230,345,460,920,1840],"Mediterranean Killifish":[150,225,300,600,1200],"European Mudminnow":[250,375,500,1000,2000],"Northern Pike":[610,915,1220,2440,4880],"Common Whitefish":[105,157,210,420,840],"Ruffe":[100,150,200,400,800],"Tadpole":[100,150,200,400,800],"Mottled Sculpin":[150,225,300,600,1200],"Pumpkinseed":[250,375,500,1000,2000],"Bluegill":[395,592,790,1580,3160],"European Perch":[75,112,150,300,600],"Oriental Shrimp":[50,75,100,200,400],"Tilapia":[320,480,640,1280,2560],"Barbel":[75,112,150,300,600],"Three-Spined Stickleback":[150,225,300,600,1200],"Minnow":[50,75,100,200,400],"Burbot":[230,345,460,920,1840],"Chum Salmon":[150,225,300,600,1200],"Spined Loach":[50,75,100,200,400],"Zander":[230,345,460,920,1840],"Red-Bellied Piranha":[230,345,460,920,1840],"Huchen":[380,570,760,1520,3040],"Streber":[50,75,100,200,400],"Common Carp":[50,75,100,200,400],"Freshwater Blenny":[150,225,300,600,1200]};
   (function(){
-    var body = document.querySelector("#fish-table tbody");
-    if(!body) return;
+    var table = document.getElementById("fish-table");
+    if(!table) return;
+    var head = table.querySelector("thead"), body = table.querySelector("tbody");
+    var empty = document.getElementById("fish-empty");
+    var countEl = document.getElementById("ff-count");
     var WX_ICON = { S:"☀️", R:"🌧️", N:"❄️", B:"🌈" };
+    var fish = SPECIES.fish.map(function(f){
+      var pr = FISH_PRICES[f.n] || [0,0,0,0,f.p||0];
+      var water = {};
+      f.at.forEach(function(a){
+        if(/Sea/.test(a)) water.sea = 1;
+        else if(/Lake/.test(a)) water.lake = 1;
+        else if(/River/.test(a)) water.river = 1;
+      });
+      return { f:f, pr:pr, water:water };
+    });
+    var f = { q:"", star:"5", wx:{S:1,R:1,N:1,B:1}, water:"", loc:"", shadow:"", time:"", lv:"", sort:"lv" };
+
+    var locs = {}, lvs = {};
+    fish.forEach(function(x){ x.f.at.forEach(function(a){ locs[a]=1; }); lvs[x.f.lv]=1; });
+    var locSel = document.getElementById("ff-loc");
+    Object.keys(locs).sort().forEach(function(a){ var o=document.createElement("option"); o.value=a; o.textContent=a; locSel.appendChild(o); });
+    var lvSel = document.getElementById("ff-lv");
+    Object.keys(lvs).map(Number).sort(function(a,b){return a-b;}).forEach(function(l){ var o=document.createElement("option"); o.value=l; o.textContent="Lv "+l; lvSel.appendChild(o); });
+
     function wxHtml(w){
       if(w === "SRNB") return '<span class="muted">Any</span>';
       return w.split("").map(function(c){ return WX_ICON[c] || c; }).join(" ");
     }
-    body.innerHTML = SPECIES.fish.slice().sort(function(a,b){ return (a.lv||0)-(b.lv||0) || a.n.localeCompare(b.n); }).map(function(f){
-      return "<tr><td>" + itemThumb(f.n, true) + escapeHtml(f.n) + "</td>" +
-        '<td class="num-cell">' + f.lv + "</td>" +
-        "<td>" + wxHtml(f.w) + "</td>" +
-        "<td>" + (f.t ? escapeHtml(f.t) : '<span class="muted">All day</span>') + "</td>" +
-        "<td>" + escapeHtml(f.d || "") + "</td>" +
-        '<td class="num-cell">' + (f.p ? f.p.toLocaleString() + "g" : "") + "</td>" +
-        "<td>" + escapeHtml(f.at.join(", ")) + (f.sp ? ' <span class="muted">(' + escapeHtml(f.sp) + ")</span>" : "") + "</td></tr>";
-    }).join("");
-    wireTableSearch("fish-search", "fish-table");
+    function priceOf(x){ return f.star === "all" ? x.pr[4] : x.pr[parseInt(f.star,10)-1]; }
+    function passes(x){
+      var e = x.f;
+      if(f.q && (e.n + " " + e.at.join(" ") + " " + (e.d||"") + " " + (e.sp||"")).toLowerCase().indexOf(f.q) < 0) return false;
+      if(!e.w.split("").some(function(c){ return f.wx[c]; })) return false;
+      if(f.water && !x.water[f.water]) return false;
+      if(f.loc && e.at.indexOf(f.loc) < 0) return false;
+      if(f.shadow && (e.d||"").indexOf(f.shadow) < 0) return false;
+      if(f.time === "all" && e.t) return false;
+      if(f.time === "limited" && !e.t) return false;
+      if(f.lv && String(e.lv) !== f.lv) return false;
+      return true;
+    }
+    function render(){
+      var allStars = f.star === "all";
+      head.innerHTML = "<tr><th>Fish</th><th class=\"num-cell\">Lv</th><th>Weather</th><th>Active hours</th><th>Shadow</th>" +
+        (allStars ? [1,2,3,4,5].map(function(s){ return '<th class="num-cell">&#9733;'+s+"</th>"; }).join("")
+                  : '<th class="num-cell">&#9733;'+f.star+" price</th>") +
+        "<th>Found at</th></tr>";
+      var rows = fish.filter(passes);
+      rows.sort(function(a,b){
+        if(f.sort === "pdesc") return priceOf(b)-priceOf(a) || a.f.n.localeCompare(b.f.n);
+        if(f.sort === "pasc") return priceOf(a)-priceOf(b) || a.f.n.localeCompare(b.f.n);
+        if(f.sort === "name") return a.f.n.localeCompare(b.f.n);
+        return (a.f.lv||0)-(b.f.lv||0) || a.f.n.localeCompare(b.f.n);
+      });
+      body.innerHTML = rows.map(function(x){
+        var e = x.f;
+        var priceCells = allStars
+          ? x.pr.map(function(v){ return '<td class="num-cell">'+v.toLocaleString()+"g</td>"; }).join("")
+          : '<td class="num-cell ff-hi">'+priceOf(x).toLocaleString()+"g</td>";
+        return "<tr><td>" + itemThumb(e.n, true) + escapeHtml(e.n) + "</td>" +
+          '<td class="num-cell">' + e.lv + "</td>" +
+          "<td>" + wxHtml(e.w) + "</td>" +
+          "<td>" + (e.t ? escapeHtml(e.t) : '<span class="muted">All day</span>') + "</td>" +
+          "<td>" + escapeHtml(e.d || "") + "</td>" + priceCells +
+          "<td>" + escapeHtml(e.at.join(", ")) + (e.sp ? ' <span class="muted">(' + escapeHtml(e.sp) + ")</span>" : "") + "</td></tr>";
+      }).join("");
+      empty.hidden = rows.length > 0;
+      countEl.textContent = rows.length + " of " + fish.length + " fish";
+    }
+
+    document.getElementById("fish-search").addEventListener("input", function(){ f.q = this.value.trim().toLowerCase(); render(); });
+    var starBtns = document.querySelectorAll("#ff-star > button");
+    Array.prototype.forEach.call(starBtns, function(b){
+      b.addEventListener("click", function(){
+        f.star = b.getAttribute("data-star");
+        Array.prototype.forEach.call(starBtns, function(o){ o.setAttribute("aria-pressed", o === b ? "true" : "false"); });
+        render();
+      });
+    });
+    var wxBtns = document.querySelectorAll("#ff-wx > button");
+    Array.prototype.forEach.call(wxBtns, function(b){
+      b.addEventListener("click", function(){
+        var k = b.getAttribute("data-wx");
+        f.wx[k] = f.wx[k] ? 0 : 1;
+        b.setAttribute("aria-pressed", f.wx[k] ? "true" : "false");
+        render();
+      });
+    });
+    [["ff-water","water"],["ff-loc","loc"],["ff-shadow","shadow"],["ff-time","time"],["ff-lv","lv"],["ff-sort","sort"]].forEach(function(p){
+      document.getElementById(p[0]).addEventListener("change", function(){ f[p[1]] = this.value; render(); });
+    });
+    document.getElementById("ff-reset").addEventListener("click", function(){
+      f = { q:"", star:"5", wx:{S:1,R:1,N:1,B:1}, water:"", loc:"", shadow:"", time:"", lv:"", sort:"lv" };
+      document.getElementById("fish-search").value = "";
+      ["ff-water","ff-loc","ff-shadow","ff-time","ff-lv"].forEach(function(id){ document.getElementById(id).value = ""; });
+      document.getElementById("ff-sort").value = "lv";
+      Array.prototype.forEach.call(starBtns, function(o){ o.setAttribute("aria-pressed", o.getAttribute("data-star") === "5" ? "true" : "false"); });
+      Array.prototype.forEach.call(wxBtns, function(o){ o.setAttribute("aria-pressed", "true"); });
+      render();
+    });
+    render();
   })();
 
   var NPCS = [
@@ -7688,7 +7877,8 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     function upcoming(){
       var out = [];
       T().plots.forEach(function(p){
-        out.push({ at:p.endsAt, title:p.crop + " is ready", body:"Head back to your farm and collect it." });
+        out.push({ at:p.endsAt, title:p.crop + " is ready",
+                   body: p.kind === "order" ? "Your order machine has finished — go pick it up." : "Head back to your farm and collect it." });
         if(p.weeds) p.weeds.forEach(function(t, i){
           out.push({ at:t, title:"Weeds on your " + p.crop,
                      body:"Wave " + (i+1) + " of 3 — pull them before they slow the crop." });
@@ -7719,8 +7909,45 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       T().plots = T().plots.filter(function(p){ return p.id !== id; });
       save(); render(); pushSchedule();
     }
+    // ---- order machine --------------------------------------------------
+    // Stored as ordinary plots with kind:"order", so sync, alerts, the menu
+    // echo and the tab badge all work on them without separate plumbing.
+    (function(){
+      var omAdd = document.getElementById("om-add");
+      if(!omAdd) return;
+      var omName = document.getElementById("om-name");
+      var omH = document.getElementById("om-hours"), omM = document.getElementById("om-mins");
+      var omStatus = document.getElementById("om-status");
+      var catBtns = document.querySelectorAll("#om-cats > button");
+      var omCat = "furniture";
+      var DEFAULT_NAME = { furniture:"Furniture order", clothing:"Clothing order", other:"Order" };
+      Array.prototype.forEach.call(catBtns, function(b){
+        b.addEventListener("click", function(){
+          omCat = b.getAttribute("data-cat");
+          Array.prototype.forEach.call(catBtns, function(o){ o.setAttribute("aria-pressed", o === b ? "true" : "false"); });
+        });
+      });
+      omAdd.addEventListener("click", function(){
+        var hrs = Math.max(0, parseInt(omH.value, 10) || 0);
+        var mins = Math.max(0, Math.min(59, parseInt(omM.value, 10) || 0));
+        var d = (hrs * 60 + mins) * 60000;
+        if(d <= 0){ omStatus.textContent = "Set a time longer than 0 minutes."; return; }
+        var name = (omName.value || "").trim().slice(0, 60) || DEFAULT_NAME[omCat];
+        var now = Date.now();
+        T().plots.push({
+          id: cid(), kind: "order", cat: omCat, crop: name,
+          startedAt: now, endsAt: now + d, dur: d,
+          replant: false, weeds: null, weedsDone: 0, done: false
+        });
+        omName.value = "";
+        omStatus.textContent = "Started “" + name + "” — ready " + at(now + d) + ".";
+        save(); render(); pushSchedule();
+      });
+      omName.addEventListener("keydown", function(e){ if(e.key === "Enter") omAdd.click(); });
+    })();
+
     function collect(p){
-      if(p.replant){
+      if(p.replant && p.kind !== "order"){
         var now = Date.now();
         p.startedAt = now; p.endsAt = now + p.dur; p.done = false;
         p.weedsDone = 0;
@@ -7737,6 +7964,59 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       return null;
     }
 
+    var ORDER_ICON = { furniture:"🪑", clothing:"👗", other:"📦" };
+    var ORDER_LABEL = { furniture:"furniture", clothing:"clothing", other:"order" };
+    function artHtml(p, cls, icoCls){
+      if(p.kind === "order") return '<span class="' + icoCls + '">' + (ORDER_ICON[p.cat] || "📦") + "</span>";
+      return hasArt(p.crop)
+        ? '<img class="' + cls + '" src="' + ITEM_IMAGES[p.crop] + '" alt="" draggable="false">'
+        : '<span class="' + icoCls + '">' + icon(p.crop) + "</span>";
+    }
+    // ---- order machine cards ----
+    var OM_CLOCK = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#fff"/><path d="M12 6v6.2l3.6 2.2" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none" style="color:var(--om-teal)"/></svg>';
+    var OM_MACHINE = '<svg class="om-machine" viewBox="0 0 60 84" aria-hidden="true">' +
+      '<rect x="3" y="4" width="54" height="7" rx="2" fill="#4B5FB0"/>' +
+      '<rect x="6" y="10" width="48" height="70" rx="6" fill="#8BD13C"/>' +
+      '<rect x="6" y="10" width="10" height="70" rx="5" fill="#76BC2C"/>' +
+      '<rect x="20" y="18" width="28" height="20" rx="3" fill="#6FA8F0"/>' +
+      '<path d="M25 31h10v-8h5l4 4v4h-2" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>' +
+      '<circle cx="29" cy="32.5" r="2" fill="#fff"/><circle cx="40" cy="32.5" r="2" fill="#fff"/>' +
+      '<rect x="36" y="43" width="12" height="3" rx="1.5" fill="#2B3A4E"/>' +
+      '<rect x="20" y="52" width="28" height="22" rx="4" fill="#79C12F" stroke="#6AAE25"/>' +
+      '<path d="M28 60l6-3 6 3v7l-6 3-6-3z" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>' +
+      '<rect x="8" y="80" width="6" height="3" rx="1" fill="#555"/><rect x="46" y="80" width="6" height="3" rx="1" fill="#555"/>' +
+      "</svg>";
+    function omDur(ms){
+      var s = Math.max(0, Math.ceil(ms / 1000));
+      var d = Math.floor(s / 86400), hh = Math.floor((s % 86400) / 3600), mm = Math.floor((s % 3600) / 60), ss = s % 60;
+      if(d) return d + "d " + hh + "h";
+      if(hh) return hh + "h " + mm + "m";
+      if(mm) return mm + "m " + (ss < 10 ? "0" : "") + ss + "s";
+      return ss + "s";
+    }
+    function orderCardHtml(p, now){
+      var left = p.endsAt - now, ready = left <= 0;
+      var pct = ready ? 100 : Math.max(0, Math.min(100, (now - p.startedAt) / p.dur * 100));
+      return '<div class="ct-row om-card' + (ready ? " ready" : "") + '" data-id="' + p.id + '">' +
+        '<div class="om-left">' +
+          '<div class="om-bubble">' + (ORDER_ICON[p.cat] || "📦") + "</div>" +
+          OM_MACHINE +
+          '<div class="om-label">' + escapeHtml(p.crop) + "</div>" +
+        "</div>" +
+        '<div class="om-right">' +
+          '<p class="om-caption">' + (ready ? "Your order has arrived!" : "Order in progress. Time until arrival:") + "</p>" +
+          '<div class="om-pill">' + OM_CLOCK + "<span>" + (ready ? "Ready" : omDur(left)) + "</span></div>" +
+          '<div class="om-bar"><span style="width:' + pct.toFixed(1) + '%"></span></div>' +
+          '<p class="om-note">' + (ready
+            ? "Head to the order machine to make payment and collect it."
+            : "Arrives " + escapeHtml(at(p.endsAt)) + ". Come back to the machine to make payment after the countdown ends.") + "</p>" +
+          '<div class="om-actions">' +
+            '<button type="button" class="om-btn ghost" data-act="remove" aria-label="Cancel this order">Give Up</button>' +
+            '<button type="button" class="om-btn" data-act="collect">' + (ready ? "Picked up" : "Finish now") + "</button>" +
+          "</div>" +
+        "</div>" +
+      "</div>";
+    }
     function rowHtml(p, now){
       var left = p.endsAt - now;
       var ready = left <= 0;
@@ -7747,11 +8027,10 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
         return '<span class="ct-weedmark' + (t <= now ? " past" : "") + '" style="left:' + f.toFixed(1) + '%"></span>';
       }).join("") : "";
       return '<div class="ct-row' + (ready ? " ready" : "") + '" data-id="' + p.id + '">' +
-        (hasArt(p.crop)
-          ? '<img class="ct-art small" src="' + ITEM_IMAGES[p.crop] + '" alt="" draggable="false">'
-          : '<span class="ct-row-ico">' + icon(p.crop) + "</span>") +
+        artHtml(p, "ct-art small", "ct-row-ico") +
         '<div class="ct-row-main">' +
           '<div class="ct-row-name">' + escapeHtml(p.crop) +
+            (p.kind === "order" ? ' <span class="ct-tag order">' + (ORDER_LABEL[p.cat] || "order") + "</span>" : "") +
             (p.replant ? ' <span class="ct-tag">continuous</span>' : "") +
             (p.weeds ? ' <span class="ct-tag weed">🌱 weeds</span>' : "") + "</div>" +
           '<div class="ct-track"><div class="ct-fill" style="width:' + pct.toFixed(1) + '%"></div>' + marks + "</div>" +
@@ -7762,7 +8041,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
           '<div class="ct-when muted">' + (ready ? "waiting for you" : at(p.endsAt)) + "</div>" +
         "</div>" +
         '<div class="ct-row-actions">' +
-          '<button type="button" class="btn subtle small" data-act="collect">' + (ready ? (p.replant ? "Collect &amp; replant" : "Collect") : "Finish now") + "</button>" +
+          '<button type="button" class="btn subtle small" data-act="collect">' + (ready ? (p.replant ? "Collect &amp; replant" : (p.kind === "order" ? "Picked up" : "Collect")) : "Finish now") + "</button>" +
           '<button type="button" class="btn subtle small" data-act="remove" aria-label="Cancel this timer">✖</button>' +
         "</div>" +
       "</div>";
@@ -7771,7 +8050,9 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     function render(){
       var now = Date.now();
       var plots = T().plots.slice().sort(function(a,b){ return a.endsAt - b.endsAt; });
-      listEl.innerHTML = plots.map(function(p){ return rowHtml(p, now); }).join("");
+      listEl.innerHTML = plots.map(function(p){
+        return p.kind === "order" ? orderCardHtml(p, now) : rowHtml(p, now);
+      }).join("");
       emptyEl.hidden = plots.length > 0;
       var readyCount = plots.filter(function(p){ return p.endsAt <= now; }).length;
       harvestAllBtn.hidden = readyCount < 2;
@@ -7796,9 +8077,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
         var left = p.endsAt - now;
         var pct = ready ? 100 : Math.max(0, Math.min(100, (now - p.startedAt) / p.dur * 100));
         return '<div class="ov-active-row' + (ready ? " ready" : "") + '">' +
-          (hasArt(p.crop)
-            ? '<img class="ct-art" src="' + ITEM_IMAGES[p.crop] + '" alt="" draggable="false">'
-            : '<span class="ov-active-ico">' + icon(p.crop) + "</span>") +
+          artHtml(p, "ct-art", "ov-active-ico") +
           '<div class="ov-active-main">' +
             '<div class="ov-active-top">' +
               '<span class="ov-active-name">' + escapeHtml(p.crop) + "</span>" +
@@ -7881,8 +8160,10 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       if(ripe.length){
         var names = ripe.map(function(p){ return p.crop; });
         var uniq = names.filter(function(v, i){ return names.indexOf(v) === i; });
-        announce(ripe.length === 1 ? uniq[0] + " is ready" : ripe.length + " plots are ready", uniq.join(", "), true);
-        ripe.forEach(function(p){ if(p.replant) collect(p); });
+        var allOrders = ripe.every(function(p){ return p.kind === "order"; });
+        announce(ripe.length === 1 ? uniq[0] + " is ready"
+                 : ripe.length + (allOrders ? " orders are ready" : " timers are ready"), uniq.join(", "), true);
+        ripe.forEach(function(p){ if(p.replant && p.kind !== "order") collect(p); });
       }
       if(changed) save();
       render();
