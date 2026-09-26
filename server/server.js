@@ -194,15 +194,67 @@ function trimNews(json) {
     const m = contents.match(/\{STEAM_CLAN_IMAGE\}\/([^\s\[\]"'<>]+\.(?:jpg|jpeg|png|gif|webp))/i) ||
               contents.match(/(https:\/\/[^\s\[\]"'<>]+steamstatic\.com[^\s\[\]"'<>]+\.(?:jpg|jpeg|png|gif|webp))/i);
     if (m) img = m[1].startsWith("http") ? m[1] : "https://clan.fastly.steamstatic.com/images/" + m[1];
+    // PV posts often embed a YouTube video instead of a picture: its thumbnail
+    // is the banner's key art, so use that when there's nothing else.
+    const yt = contents.match(/previewyoutube=([A-Za-z0-9_-]{11})/i) ||
+               contents.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/i);
+    const ytImg = yt ? "https://i.ytimg.com/vi/" + yt[1] + "/hqdefault.jpg" : null;
     return {
       title: String(n.title || "").slice(0, 200),
       date: (n.date || 0) * 1000,
       url: String(n.url || ""),
       img: img,
+      ytImg: ytImg,
       codes: findCodes(contents)
     };
   });
   return { items: items, at: Date.now() };
+}
+
+// Steam keeps an event post's header picture as the page's preview image
+// (og:image) rather than in the post text. Read it once per post, following
+// redirects, and remember it — posts never change their header.
+const ogCache = new Map();
+function fetchText(url, hops) {
+  return new Promise((resolve) => {
+    if (hops > 4) return resolve(null);
+    let u;
+    try { u = new URL(url); } catch (e) { return resolve(null); }
+    if (u.protocol !== "https:") return resolve(null);
+    const req = https.get(u, { timeout: 8000, headers: { "User-Agent": "HatoLog/1.0 (+https://hatolog.up.railway.app)", "Accept-Language": "en" } }, (r) => {
+      if (r.statusCode >= 300 && r.statusCode < 400 && r.headers.location) {
+        r.resume();
+        return resolve(fetchText(new URL(r.headers.location, u).toString(), hops + 1));
+      }
+      if (r.statusCode !== 200) { r.resume(); return resolve(null); }
+      let raw = "";
+      r.setEncoding("utf8");
+      r.on("data", (c) => { raw += c; if (raw.length > 400000) req.destroy(); });
+      r.on("end", () => resolve(raw));
+      r.on("close", () => resolve(raw || null));
+    });
+    req.on("timeout", () => req.destroy());
+    req.on("error", () => resolve(null));
+  });
+}
+function ogImage(url) {
+  if (ogCache.has(url)) return Promise.resolve(ogCache.get(url));
+  return fetchText(url, 0).then((html) => {
+    let img = null;
+    if (html) {
+      const m = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
+                html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+      if (m && /^https:\/\//.test(m[1]) && !/\/capsule_|\/header\.jpg|steam_share_image/i.test(m[1])) img = m[1].replace(/&amp;/g, "&");
+    }
+    if (html) ogCache.set(url, img);   // only remember real answers, retry failures next time
+    return img;
+  });
+}
+const BANNER_POST = /exhibition|treasure box|speciality/i;
+function addHeaderImages(data) {
+  const need = data.items.filter((n) => !n.img && BANNER_POST.test(n.title) && n.url).slice(0, 12);
+  return Promise.all(need.map((n) => ogImage(n.url).then((img) => { if (img) n.img = img; })))
+    .then(() => { data.items.forEach((n) => { if (!n.img && n.ytImg) n.img = n.ytImg; delete n.ytImg; }); return data; });
 }
 
 function getNews(done) {
@@ -216,12 +268,16 @@ function getNews(done) {
         r.setEncoding("utf8");
         r.on("data", (c) => { raw += c; if (raw.length > 5e6) req.destroy(); });
         r.on("end", () => {
-          try {
-            newsCache = { at: Date.now(), body: Buffer.from(JSON.stringify(trimNews(JSON.parse(raw)))) };
-          } catch (e) {
+          let data = null;
+          try { data = trimNews(JSON.parse(raw)); } catch (e) { data = null; }
+          if (!data) {
             newsCache.at = Date.now() - NEWS_TTL + 5 * 60 * 1000; // retry in 5 min
+            return resolve();
           }
-          resolve();
+          addHeaderImages(data).catch(() => data).then(() => {
+            newsCache = { at: Date.now(), body: Buffer.from(JSON.stringify(data)) };
+            resolve();
+          });
         });
       });
       req.on("timeout", () => req.destroy());

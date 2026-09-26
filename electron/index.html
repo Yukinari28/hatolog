@@ -718,12 +718,16 @@
   .jr-title{ margin:2px 0 0; font-size:1.45rem; }
   .jr-feed{ list-style:none; margin:10px 0 0; padding:0 0 0 34px; position:relative; display:grid; gap:18px; }
   .jr-feed::before{ content:""; position:absolute; left:14px; top:6px; bottom:6px; border-left:2px dotted var(--jr-soft); opacity:0.5; }
-  .jr-item{ position:relative; display:grid; grid-template-columns:132px minmax(0,1fr); gap:16px; align-items:center; }
+  .jr-item{ position:relative; }
+  .jr-go{ display:grid; grid-template-columns:132px minmax(0,1fr); gap:16px; align-items:center; color:inherit; text-decoration:none; border-radius:14px; padding:4px; margin:-4px; transition:background 0.15s ease; }
+  a.jr-go:hover{ background:var(--jr-line); }
+  a.jr-go:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  a.jr-go:hover .jr-link{ text-decoration:underline; }
   .jr-item::before{ content:""; position:absolute; left:-26px; top:50%; width:12px; height:12px; margin-top:-6px; border-radius:50%; background:var(--jr-paper); border:3px solid var(--jr-dot, var(--accent)); }
   .jr-item.ending{ --jr-dot:#e5532b; } .jr-item.live{ --jr-dot:#2fa96b; } .jr-item.soon{ --jr-dot:#6c5ce7; } .jr-item.news{ --jr-dot:#e0a13a; } .jr-item.ended{ --jr-dot:#8a8398; opacity:0.7; }
   .jr-photo{ position:relative; background:var(--jr-photo); padding:6px 6px 18px; border-radius:3px; box-shadow:0 6px 14px -6px rgba(40,30,70,0.45); transform:rotate(var(--rot, -2deg)); transition:transform 0.2s ease; }
   .jr-item:nth-child(even) .jr-photo{ --rot:2.2deg; }
-  .jr-item:hover .jr-photo{ transform:rotate(0) scale(1.03); }
+  a.jr-go:hover .jr-photo{ transform:rotate(0) scale(1.04); }
   .jr-photo::after{ content:""; position:absolute; top:-8px; left:50%; width:44px; height:14px; transform:translateX(-50%) rotate(3deg); background:var(--jr-tape); border-radius:2px; }
   .jr-pic{ position:relative; aspect-ratio:4/3; overflow:hidden; border-radius:2px; background:var(--bn-grad); }
   .jr-pic img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
@@ -749,7 +753,7 @@
     .jr-head{ padding-left:0; }
     .jr-feed{ padding-left:22px; gap:16px; }
     .jr-feed::before{ left:6px; }
-    .jr-item{ grid-template-columns:96px minmax(0,1fr); gap:12px; }
+    .jr-go{ grid-template-columns:96px minmax(0,1fr); gap:12px; }
     .jr-item::before{ left:-21px; }
     .jr-name{ font-size:1rem; }
   }
@@ -778,6 +782,9 @@
   .bn-note{ font-size:0.78rem; color:var(--text-muted); line-height:1.4; }
   .bn-bar{ height:5px; border-radius:99px; background:var(--border); overflow:hidden; margin-top:4px; }
   .bn-bar span{ display:block; height:100%; background:var(--accent); }
+  a.bn-click{ color:inherit; text-decoration:none; transition:transform 0.15s ease, border-color 0.15s ease; }
+  a.bn-click:hover{ transform:translateY(-2px); border-color:var(--accent); }
+  a.bn-click:hover .bn-link{ text-decoration:underline; }
   .bn-link{ font-size:0.76rem; font-weight:700; color:var(--accent-ink); text-decoration:none; margin-top:2px; }
   .bn-link:hover{ text-decoration:underline; }
   .bn-news{ display:grid; gap:10px; }
@@ -8760,13 +8767,13 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       img:"https://clan.fastly.steamstatic.com/images/45812445/2f89b4e1ef2d9868c097081c9a7bd42008425aee.jpg",
       note:"Outfits: Heartbond Vow (Windbloom) &amp; (Lightplume). Furniture &amp; building: Heartbond Vow (Eternity).",
       src:"https://store.steampowered.com/news/app/4025700/view/719036647985907173" },
-    { type:"gilded", name:"Lost in the Forest", start:"2026-08-15 06:00", end:"2026-10-17 05:59", img:null,
+    { type:"gilded", name:"Lost in the Forest", start:"2026-08-15 06:00", end:"2026-10-17 05:59", img:null, yt:"pBu2j13g0hM",
       note:"New Gilded Acorn Exhibition.",
       src:"https://x.com/MyHeartopia/status/2086376941985100166" },
     { type:"speciality", name:"Nostalgic Blossom", start:"2026-09-10 06:00", end:null, img:null,
       note:"Outfit sets Nostalgic Blossom (Yearning) and more, drawn with Exhibition Passes.",
       src:"https://x.com/MyHeartopia/status/2095799037735932274" },
-    { type:"moonlight", name:"Pajama Jam", start:"2026-09-10 06:00", end:null, img:null,
+    { type:"moonlight", name:"Pajama Jam", start:"2026-09-10 06:00", end:null, img:null, yt:"pFnJbQfS1KU",
       note:"Outfit sets Pajama Jam (Spiral Snail) and more, drawn with Moonlight Crystals.",
       src:"https://x.com/MyHeartopia/status/2095806576770920731" }
   ];
@@ -8798,6 +8805,18 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       for(var i=0;i<news.length;i++) if(news[i].img && norm(news[i].title).indexOf(n) >= 0) return news[i];
       return null;
     }
+    function safeUrl(u){ return /^https:\/\//.test(u || "") ? String(u).replace(/"/g, "%22") : null; }
+    function imgOf(b){
+      var n = newsFor(b);
+      return b.img || (n && n.img) || (b.yt ? "https://i.ytimg.com/vi/" + b.yt + "/hqdefault.jpg" : null);
+    }
+    // Prefer the official Steam post (opens for anyone, full details) over X,
+    // which often wants a login before it shows anything.
+    function linkOf(b){
+      var nn = norm(b.name);
+      for(var i=0;i<news.length;i++) if(norm(news[i].title).indexOf(nn) >= 0 && news[i].url) return news[i].url;
+      return b.src || null;
+    }
     function dur(ms){
       var m = Math.max(0, Math.round(ms/60000)), d = Math.floor(m/1440), hh = Math.floor((m%1440)/60), mm = m%60;
       if(d >= 2) return d + "d " + hh + "h";
@@ -8819,7 +8838,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     }
     function artHtml(b){
       var T = BN_TYPES[b.type] || BN_TYPES.gilded;
-      var src = b.img || (newsFor(b) || {}).img;
+      var src = imgOf(b);
       var fb = '<div class="bn-fallback">' + T.icon + "</div>";
       return '<div class="bn-art" style="--bn-grad:' + T.grad + '">' + fb +
         (src ? '<img src="' + src + '" alt="' + escapeHtml(b.name) + ' banner" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">' : "") +
@@ -8833,13 +8852,15 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       else if(st.e) when = "Ends in <b>" + dur(st.e - now) + "</b> · " + dateLabel(st.e) + " " + HH_TIME.clockOf(st.e);
       else when = "Live since " + (st.s ? dateLabel(st.s) : "—") + " · <b>end date TBA</b>";
       var pct = (st.s && st.e && st.k !== "soon") ? Math.max(0, Math.min(100, (now - st.s) / (st.e - st.s) * 100)) : null;
-      return '<div class="bn">' + artHtml(b) + '<span class="bn-status ' + st.k + '">' + st.t + "</span></div>" +
+      var href = safeUrl(linkOf(b));
+      var open = href ? '<a class="bn bn-click" href="' + href + '" target="_blank" rel="noopener" title="Open the official announcement">' : '<div class="bn">';
+      return open + artHtml(b) + '<span class="bn-status ' + st.k + '">' + st.t + "</span></div>" +
         '<div class="bn-body"><div class="bn-name">' + escapeHtml(b.name) + "</div>" +
         '<div class="bn-when' + (st.k === "ending" ? " hot" : "") + '">' + when + "</div>" +
         (pct != null ? '<div class="bn-bar"><span style="width:' + pct.toFixed(1) + '%"></span></div>' : "") +
         (full && b.note ? '<div class="bn-note">' + b.note + "</div>" : "") +
-        (full && b.src ? '<a class="bn-link" href="' + b.src + '" target="_blank" rel="noopener">Official announcement &rarr;</a>' : "") +
-        "</div></div>";
+        (full && href ? '<span class="bn-link">Official announcement ↗</span>' : "") +
+        "</div>" + (href ? "</a>" : "</div>");
     }
     function order(now){
       var rank = { ending:0, live:1, soon:2, ended:3 };
@@ -8866,7 +8887,9 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     var STAMP = { ending:"ending soon!", live:"on now", soon:"coming up", ended:"closed", news:"just announced" };
     function feedItem(k, T, title, img, line, pct, cap, href){
       var fb = '<div class="bn-fallback">' + T.icon + "</div>";
-      return '<li class="jr-item ' + k + '">' +
+      href = safeUrl(href);
+      var tag = href ? 'a href="' + href + '" target="_blank" rel="noopener" title="Open the official announcement"' : "div";
+      return '<li class="jr-item ' + k + '"><' + tag + ' class="jr-go">' +
         '<div class="jr-photo"><div class="jr-pic" style="--bn-grad:' + T.grad + '">' + fb +
           (img ? '<img src="' + img + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">' : "") +
         '</div><span class="jr-cap">' + cap + "</span></div>" +
@@ -8875,8 +8898,8 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
           '<div class="jr-line">' + line + "</div>" +
           (pct != null ? '<div class="jr-bar"><span style="width:' + pct.toFixed(1) + '%"></span></div>' : "") +
           '<span class="jr-stamp">' + STAMP[k] + "</span>" +
-          (href ? '<a class="jr-link" href="' + href + '" target="_blank" rel="noopener">Read the announcement &rarr;</a>' : "") +
-        "</div></li>";
+          (href ? '<span class="jr-link">Open details ↗</span>' : "") +
+        "</div></" + (href ? "a" : "div") + "></li>";
     }
     function feedHtml(list, now){
       var out = list.filter(function(x){ return x.st.k !== "ended"; }).map(function(x){
@@ -8886,7 +8909,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
           pct = st.s ? Math.max(0, Math.min(100, (now - st.s) / (st.e - st.s) * 100)) : null; }
         else line = "Open since " + (st.s ? dateLabel(st.s) : "—") + " &middot; end date not announced";
         var cap = st.s ? "since " + dateLabel(st.s) : "";
-        return feedItem(st.k, T, b.name, b.img || (newsFor(b) || {}).img, line, pct, cap, null);
+        return feedItem(st.k, T, b.name, imgOf(b), line, pct, cap, linkOf(b));
       });
       // Freshly announced banners the hand-kept list doesn't have yet.
       news.filter(function(n){
