@@ -162,6 +162,15 @@ let newsInFlight = null;
 // Code: xxxx" / "Redemption Code: xxxx", usually followed by "Redemption
 // Deadline: <date> 10:59 (UTC-5)". Pull those out so a code announced in an
 // official post reaches the app without anyone copying it by hand.
+// "Moonlight Crystals ×50🌾 Wheat Seeds ×10🥛 Milk ×10" → "Moonlight Crystals ×50, Wheat Seeds ×10, Milk ×10"
+function tidyRewards(s) {
+  return String(s || "")
+    .replace(/(\d)\s*(?=\p{Extended_Pictographic})/gu, "$1, ")
+    .replace(/\p{Extended_Pictographic}\uFE0F?/gu, "")
+    .replace(/\s+/g, " ").replace(/\s+,/g, ",").replace(/,\s*,/g, ",")
+    .trim().replace(/^[,\s]+|[,\s]+$/g, "").slice(0, 140);
+}
+
 function findCodes(text) {
   const t = String(text || "").replace(/\[\/?[a-z0-9]+[^\]]*\]/gi, " ");
   const out = [];
@@ -182,7 +191,7 @@ function findCodes(text) {
       expires = Date.UTC(+d2[1], +d2[2] - 1, +d2[3], +d2[4] - off, +d2[5]);
     }
     const rw = after.match(/rewards?[^:：]*[:：]\s*([^\n]{3,160})/i);
-    out.push({ code: code, expires: expires, rewards: rw ? rw[1].split(/(?:redemption|redeem)?\s*deadline|⏰/i)[0].replace(/\s+/g, " ").trim().slice(0, 140) : "" });
+    out.push({ code: code, expires: expires, rewards: rw ? tidyRewards(rw[1].split(/(?:redemption|redeem)?\s*deadline|⏰/i)[0]) : "" });
   }
   return out;
 }
