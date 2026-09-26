@@ -19,16 +19,22 @@
     "files": [
       "main.js",
       "preload.js",
-      "index.html"
+      "index.html",
+      "build/icon.ico"
     ],
     "protocols": [
       {
         "name": "HatoLog sign-in",
-        "schemes": ["hatolog"]
+        "schemes": [
+          "hatolog"
+        ]
       }
     ],
     "win": {
-      "target": ["nsis", "portable"],
+      "target": [
+        "nsis",
+        "portable"
+      ],
       "icon": "build/icon.ico"
     },
     "nsis": {

@@ -655,6 +655,71 @@
     .om-left{ min-height:190px; }
     .om-pill{ font-size:1.45rem; }
   }
+  /* ---- timer pop-ups (any tab) ---- */
+  .hp-host{ position:fixed; right:16px; bottom:16px; z-index:90; display:flex; flex-direction:column; align-items:flex-end; gap:10px; pointer-events:none; max-width:min(380px, calc(100vw - 32px)); }
+  .hp{ pointer-events:auto; position:relative; display:flex; align-items:center; gap:12px; width:100%; box-sizing:border-box;
+    background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:18px; padding:12px 14px;
+    box-shadow:0 14px 34px -14px rgba(40,30,80,0.55); transform:translateY(16px) scale(0.97); opacity:0; transition:transform 0.24s cubic-bezier(.2,.9,.3,1.2), opacity 0.2s ease; }
+  .hp.in{ transform:none; opacity:1; }
+  .hp.out{ transform:translateX(24px); opacity:0; }
+  .hp-ready{ border-color:var(--accent); background:linear-gradient(135deg, var(--surface) 55%, var(--accent-soft)); padding-right:30px; flex-wrap:wrap; }
+  .hp-art{ width:46px; height:46px; flex:none; border-radius:14px; background:var(--surface-2); display:flex; align-items:center; justify-content:center; animation:hp-bob 1.6s ease-in-out infinite; }
+  .hp-img{ width:36px; height:36px; object-fit:contain; }
+  .hp-ico{ font-size:1.6rem; line-height:1; }
+  @keyframes hp-bob{ 0%,100%{ transform:translateY(0) rotate(0); } 50%{ transform:translateY(-3px) rotate(-4deg); } }
+  .hp-txt{ display:grid; gap:2px; min-width:0; flex:1 1 150px; }
+  .hp-txt b{ font-size:0.95rem; line-height:1.25; }
+  .hp-txt span{ font-size:0.76rem; color:var(--text-muted); }
+  .hp-btns{ display:flex; gap:6px; flex:0 0 auto; }
+  .hp-go, .hp-ghost{ font:inherit; font-weight:700; font-size:0.82rem; border-radius:999px; padding:7px 13px; cursor:pointer; border:1px solid transparent; }
+  .hp-go{ background:var(--accent); color:#fff; }
+  .hp-ghost{ background:transparent; color:var(--text-muted); border-color:var(--border); }
+  .hp-go:hover, .hp-ghost:hover{ filter:brightness(1.06); }
+  .hp-x{ position:absolute; top:6px; right:8px; font:inherit; font-size:1.05rem; line-height:1; background:none; border:0; color:var(--text-muted); cursor:pointer; padding:2px 4px; }
+  .hp-done{ width:auto; padding:10px 16px 10px 12px; border-color:#3bb37a; }
+  .hp-check{ width:30px; height:30px; flex:none; }
+  .hp-check circle{ fill:#3bb37a; transform-origin:center; animation:hp-pop 0.35s cubic-bezier(.2,.9,.3,1.4) both; }
+  .hp-check path{ fill:none; stroke:#fff; stroke-width:3.4; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:24; stroke-dashoffset:24; animation:hp-draw 0.35s 0.18s ease-out forwards; }
+  @keyframes hp-pop{ from{ transform:scale(0.2); } to{ transform:scale(1); } }
+  @keyframes hp-draw{ to{ stroke-dashoffset:0; } }
+  @media (max-width:560px){
+    .hp-host{ left:12px; right:12px; bottom:12px; max-width:none; align-items:stretch; }
+    .hp-done{ width:100%; }
+  }
+  @media (prefers-reduced-motion: reduce){ .hp, .hp-art, .hp-check circle, .hp-check path{ animation:none !important; transition:none !important; } .hp-check path{ stroke-dashoffset:0; } }
+  /* ---- timer tab: section tiles ---- */
+  .tm-dock{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; margin:0 0 14px; }
+  .tm-tile{ position:relative; display:flex; align-items:center; gap:10px; text-align:left; font:inherit; color:var(--text); cursor:pointer;
+    background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:12px 14px; box-shadow:var(--shadow);
+    transition:transform 0.12s ease, border-color 0.12s ease, background 0.12s ease; }
+  .tm-tile:hover{ transform:translateY(-1px); border-color:var(--accent); }
+  .tm-tile:active{ transform:translateY(0) scale(0.98); }
+  .tm-tile:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  .tm-tile[aria-selected="true"]{ background:var(--accent-soft); border-color:var(--accent); }
+  .tm-tile[aria-selected="true"] .tm-tile-title{ color:var(--accent-ink); }
+  .tm-tile-ico{ font-size:1.6rem; line-height:1; flex:none; width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:var(--surface-2); }
+  .tm-tile[aria-selected="true"] .tm-tile-ico{ background:var(--surface); }
+  .tm-tile-txt{ display:grid; min-width:0; }
+  .tm-tile-title{ font-weight:800; font-size:0.92rem; }
+  .tm-tile-sub{ font-size:0.75rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-variant-numeric:tabular-nums; }
+  .tm-tile-sub.hot{ color:var(--accent-ink); font-weight:700; }
+  .tm-tile-dot{ position:absolute; top:8px; right:8px; width:10px; height:10px; border-radius:50%; background:#e5342b; box-shadow:0 0 0 0 rgba(229,52,43,0.55); animation:tm-ping 1.6s ease-out infinite; }
+  @keyframes tm-ping{ 0%{ box-shadow:0 0 0 0 rgba(229,52,43,0.55); } 80%,100%{ box-shadow:0 0 0 9px rgba(229,52,43,0); } }
+  @media (prefers-reduced-motion: reduce){ .tm-tile-dot{ animation:none; } .tm-pane{ animation:none !important; } }
+  .tm-pane{ animation:tm-in 0.18s ease-out; }
+  @keyframes tm-in{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
+  .tm-pane[hidden]{ display:none !important; }
+  .tm-filter{ display:flex; gap:6px; flex-wrap:wrap; margin:0 0 10px; }
+  .tm-filter[hidden]{ display:none; }
+  .tm-toast{ margin:-4px 0 12px; padding:9px 14px; border-radius:12px; background:var(--accent-soft); color:var(--accent-ink); font-weight:600; font-size:0.86rem; display:flex; align-items:center; gap:8px; }
+  .tm-toast[hidden]{ display:none; }
+  @media (max-width:700px){
+    .tm-dock{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; }
+    .tm-tile{ padding:10px 11px; gap:9px; }
+    .tm-tile-ico{ width:34px; height:34px; font-size:1.35rem; }
+    .tm-tile-sub{ white-space:normal; line-height:1.25; }
+    .tm-tile-title{ font-size:0.86rem; line-height:1.2; }
+  }
   .om-cats{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
   .om-form{ display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap; }
   .om-field{ display:grid; gap:4px; font-size:0.78rem; font-weight:700; color:var(--text-muted); }
@@ -2447,7 +2512,7 @@
       </div>
       <div class="card table-wrap">
         <table id="materials-table">
-          <thead><tr><th>Material</th><th>Source</th><th>Tool</th><th>Notes</th></tr></thead>
+          <thead><tr><th>Material</th><th>Where to find it</th><th class="num-cell">Sells for</th><th>Respawn</th><th>Notes</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -2877,10 +2942,31 @@
 
   <section class="panel" id="panel-timers">
     <div class="section-title">
-      <div><h2>Croptimer</h2><p>Pick a crop or flower, start a timer. It keeps counting with the app closed.</p></div>
+      <div><h2>Timers</h2><p>Crops, flowers and orders &mdash; they keep counting with the app closed.</p></div>
     </div>
 
-    <div class="card" style="padding:20px;">
+    <div class="tm-dock" id="tm-dock" role="tablist" aria-label="Timer sections">
+      <button type="button" class="tm-tile" role="tab" data-pane="active" aria-selected="true">
+        <span class="tm-tile-ico" aria-hidden="true">⏳</span>
+        <span class="tm-tile-txt"><span class="tm-tile-title">Active</span><span class="tm-tile-sub" id="tm-sub-active">Nothing running</span></span>
+        <span class="tm-tile-dot" id="tm-dot-active" hidden></span>
+      </button>
+      <button type="button" class="tm-tile" role="tab" data-pane="farm" aria-selected="false">
+        <span class="tm-tile-ico" aria-hidden="true">🌱</span>
+        <span class="tm-tile-txt"><span class="tm-tile-title">Farm</span><span class="tm-tile-sub" id="tm-sub-farm">Plant a crop or flower</span></span>
+      </button>
+      <button type="button" class="tm-tile" role="tab" data-pane="orders" aria-selected="false">
+        <span class="tm-tile-ico" aria-hidden="true">📦</span>
+        <span class="tm-tile-txt"><span class="tm-tile-title">Order machine</span><span class="tm-tile-sub" id="tm-sub-orders">Start an order</span></span>
+      </button>
+      <button type="button" class="tm-tile" role="tab" data-pane="reset" aria-selected="false">
+        <span class="tm-tile-ico" aria-hidden="true">🌅</span>
+        <span class="tm-tile-txt"><span class="tm-tile-title">Daily reset</span><span class="tm-tile-sub" id="tm-sub-reset">&mdash;</span></span>
+      </button>
+    </div>
+    <div class="tm-toast" id="tm-toast" role="status" aria-live="polite" hidden></div>
+
+    <div class="card tm-pane" data-pane="reset" style="padding:20px;" hidden>
       <div class="ct-reset">
         <div class="ct-reset-main">
           <h3 class="ct-heading" style="margin:0 0 4px;">Daily reset</h3>
@@ -2896,7 +2982,7 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card tm-pane" data-pane="farm" hidden>
       <h3 class="ct-heading">Plant a crop</h3>
       <div class="ct-grid" id="ct-grid" role="radiogroup" aria-label="Crop to plant"></div>
 
@@ -2927,7 +3013,7 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card tm-pane" data-pane="orders" hidden>
       <h3 class="ct-heading">Order machine</h3>
       <p class="muted" style="margin:-4px 0 12px;font-size:0.86rem;">Name the order and how long it takes. It gets alerts and syncs like a crop timer.</p>
       <div class="om-cats" id="om-cats" role="group" aria-label="Order type">
@@ -2950,7 +3036,7 @@
       <span class="muted ct-status" id="om-status" style="display:block;margin-top:8px;"></span>
     </div>
 
-    <div class="card">
+    <div class="card tm-pane" data-pane="active">
       <div class="ct-growing">
         <h3 class="ct-heading" style="margin:0;">Active timers</h3>
         <div class="ct-alerts">
@@ -2960,8 +3046,13 @@
           <button type="button" class="btn subtle small" id="ct-harvest-all" hidden>Collect all ready</button>
         </div>
       </div>
+      <div class="tm-filter" id="tm-filter" role="group" aria-label="Show" hidden>
+        <button type="button" class="btn subtle small" data-show="all" aria-pressed="true">All</button>
+        <button type="button" class="btn subtle small" data-show="crops" aria-pressed="false">🌱 Farm</button>
+        <button type="button" class="btn subtle small" data-show="orders" aria-pressed="false">📦 Orders</button>
+      </div>
       <div id="ct-list" class="ct-list"></div>
-      <p class="empty" id="ct-empty">Nothing running yet. Plant a crop or start an order above.</p>
+      <p class="empty" id="ct-empty">Nothing running yet. Tap <strong>🌱 Farm</strong> or <strong>📦 Order machine</strong> above to start one.</p>
     </div>
   </section>
 
@@ -3193,36 +3284,20 @@
 
   // ---------- DATA ----------
   var MATERIALS = [
-    ["Branch","Harvesting bushes throughout Heartopia","—","Basic wood-type material"],
-    ["Timber","Chopping any tree","Axe","Common wood-type material"],
-    ["Quality Timber","Chopping non-fruit trees","Axe",""],
-    ["Rare Timber (Hardwood)","Large trees in the Suburbs, near Plots 4–5; also sold at Acorn General Store","Axe",""],
-    ["Roaming Oak Timber","Given by Oak-Oak after the \"Astralis in Forest\" quest","Axe",""],
-    ["Black Walnut","Northeast plains","Axe",""],
-    ["Red Pine","Northeast plains, near Black Walnut &amp; White Beech","Axe",""],
-    ["White Beech","Northeast plains, a single unique tree","Axe",""],
-    ["Palm Wood","Palm trees near beaches","Axe",""],
-    ["Bamboo","Forest bamboo groves / Jump Puzzle area","—",""],
-    ["Stone","Roadsides, near houses, forests, cliffs, fruit areas","—",""],
-    ["Iron Ore","Ore nodes throughout the world (dark grey rocks)","Pickaxe","Most common ore"],
-    ["Copper Ore","River Area mine entrance, upper layers","Pickaxe",""],
-    ["Coal","Ore nodes in caves","Pickaxe",""],
-    ["Fluorite","Crystal nodes in cave &amp; mine zones","Pickaxe",""],
-    ["Flawless Fluorite","Near home plots and roadside paths","Pickaxe",""],
-    ["Starfall Fragment","Meteor Shower event","—","Event-limited"],
-    ["Clay","Riverbanks and muddy areas","Shovel",""],
-    ["Weeds","Weeding your own crops","—","Used in Fertilizer"],
-    ["Ace Beef","Raised from a placeable Ace Cattle (0.5×0.5 tile, Ground/Flooring placement)","—","Used in Burger Bliss event recipes (Septuple King Burger)"],
-    ["Ace Chicken","Raised from a placeable Ace Chicken (0.5×0.5 tile, Ground/Flooring placement)","—","Used in Burger Bliss event recipes (Saucy Crispy Chicken Wings, Double Chicken Burger)"],
-    ["Nails","General Store, or Work Bench crafting","—",""],
-    ["Fabric","General Store, or wool/cotton processing","—",""],
-    ["Glass","Furnace smelting, or General Store","—",""],
-    ["Stuffing","Processing feathers, or General Store","—",""],
-    ["Paint","General Store, or flower crafting","—",""],
-    ["Varnish","Work Bench crafting, or General Store","—",""],
-    ["Ribbon","Fabric crafting, or General Store","—",""],
-    ["Iron Ingot","Smelt Iron Ore at the Furnace","Furnace","Crafted material"],
-    ["Copper Ingot","Smelt Copper Ore at the Furnace","Furnace","Crafted material"]
+    // [name, where to find it, sell price, respawn / limit, notes] — AthenaMM's measured foraging data
+    ["Branch","Bushes on home lots, the forest and Whale Mountain","5g","2 min","About 5 per action. Tip: a 2-minute loop around Whale Mountain."],
+    ["Timber","Any tree &mdash; home lots, everywhere","6g","2 min","Regular trees give 3 timber per 3 energy."],
+    ["Quality Timber","Birch trees, European fan palms, pine/conifer and palm trees","12g","2 min","Big-trunk pines give 2 quality timber + 1 timber."],
+    ["Rare Timber","Giant trees","50g","2 hr","Giant trees drop 0&ndash;1 rare, 1&ndash;2 quality and 6&ndash;7 timber."],
+    ["Roaming Oak Timber","Home lots / Spirit-Oak Pine Forest","150g","Daily","Only 3 a day."],
+    ["Bamboo","Jump Puzzle area","7g","2 min","3 bamboo per action."],
+    ["Stone","Rocks on home lots","8g","5 min","About 5 per action."],
+    ["Ore","Rocks on home lots","14g","5 min","About 4 per action."],
+    ["Flawless Fluorite","Home lots / Onsen Mountain Ruins","150g","Daily","3 a day."],
+    ["Starfall Shard","Meteor shower area (check the weather forecast)","150g","Event","9 meteorites spawn per meteor shower."],
+    ["Weeds","Your home lot &mdash; gardening","&mdash;","&mdash;","Used in Fertilizer."],
+    ["Loam","Your home lot &mdash; gardening (rare)","&mdash;","&mdash;","Used in Top Fertilizer."],
+    ["Dog Poop","Pet care","&mdash;","&mdash;","Used in Handmade Fertilizer."]
   ];
 
   // name, seedCost, growMinutes(null=unknown), sellPrice(null=unknown), season
@@ -3694,21 +3769,83 @@
     ["Prickly Pear",10,15,30,"Echo of Ancients",1]
   ];
 
-  // name, category, [[material,qty],...], unlock
+  // [name, category, [[material, qty]...], unlock] — materials from AthenaMM's Craft tab; unlocks not recorded there yet
   var BLUEPRINTS = [
-    ["Fertilizer","Consumable",[["Weeds",4],["Timber",3]],"Work Bench, available early"],
-    ["Wooden Chair","Furniture",[["Wood",10],["Nails",5]],"Available from the start"],
-    ["Cozy Sofa","Living Room",[["Wood",25],["Fabric",15],["Stuffing",10]],"House Upgrade Level 1"],
-    ["Farmhouse Bed","Bedroom",[["Hardwood",20],["Fabric",20],["Feathers",15]],"Bob friendship Level 4"],
-    ["Plant Pot","Decoration",[["Clay",8],["Soil",5]],"Blanc friendship Level 2"],
-    ["Table Lamp","Lighting",[["Iron",10],["Fabric",5],["Crystal",2]],"General Store purchase"],
-    ["Bookshelf","Storage",[["Wood",30],["Nails",15],["Paint",5]],"Research Room discovery"],
-    ["Picture Frame","Wall Decor",[["Wood",5],["Glass",2]],"Painting skill Level 3"],
-    ["Vanity Mirror","Bedroom",[["Hardwood",15],["Glass",10],["Silver",5]],"House Upgrade Level 2"],
-    ["Spring Wreath","Seasonal",[["Flowers",20],["Vines",10],["Ribbon",5]],"Spring Festival event"],
-    ["Garden Fountain","Outdoor",[["Stone",50],["Iron",20],["Gems",5]],"Town Hall upgrade complete"],
-    ["Oak Dining Table","Kitchen",[["Oak Wood",40],["Nails",20],["Varnish",10]],"Massimo friendship Level 6"],
-    ["Holiday Tree","Seasonal",[["Pine",30],["Star Ore",1],["Lights",15]],"Winter Festival event"]
+    ["Repair Kit", "Tools &amp; consumables", [["Branch", 5]], "&mdash;"],
+    ["Crafty Repair Kit", "Tools &amp; consumables", [["Ore", 3], ["Roaming Oak Timber", 1]], "&mdash;"],
+    ["Bait", "Tools &amp; consumables", [["Apple", 3]], "&mdash;"],
+    ["Frog Garden Ornament", "Furniture", [["Stone", 4], ["Ore", 15], ["Flawless Fluorite", 5]], "&mdash;"],
+    ["Kitchen Rack", "Kitchen", [["Timber", 4], ["Stone", 4], ["Ore", 3]], "&mdash;"],
+    ["Gardening Fence", "Gardening set", [["Stone", 4], ["Ore", 12], ["Roaming Oak Timber", 2], ["Flawless Fluorite", 4]], "&mdash;"],
+    ["Gardening Bird House", "Gardening set", [["Stone", 4], ["Ore", 12], ["Roaming Oak Timber", 2], ["Flawless Fluorite", 4]], "&mdash;"],
+    ["Stage Curtain", "Furniture", [["Ore", 15], ["Roaming Oak Timber", 6]], "&mdash;"],
+    ["Lotus Sea Lantern", "Furniture", [["Timber", 15], ["Quality Timber", 15], ["Flawless Fluorite", 1]], "&mdash;"],
+    ["Gardening Chair", "Gardening set", [["Timber", 8], ["Quality Timber", 13], ["Roaming Oak Timber", 5]], "&mdash;"],
+    ["Workbench", "Furniture", [["Timber", 7], ["Quality Timber", 2], ["Ore", 2]], "&mdash;"],
+    ["Garden Table", "Gardening set", [["Quality Timber", 12], ["Ore", 3], ["Roaming Oak Timber", 4], ["Flawless Fluorite", 2]], "&mdash;"],
+    ["Gardening Workbench", "Gardening set", [["Rare Timber", 8], ["Ore", 3], ["Roaming Oak Timber", 5]], "&mdash;"],
+    ["Restaurant Serving Cart", "Restaurant set", [["Quality Timber", 9], ["Ore", 8], ["Roaming Oak Timber", 3], ["Flawless Fluorite", 3]], "&mdash;"],
+    ["Garden Ground Light", "Gardening set", [["Stone", 8], ["Rare Timber", 5], ["Roaming Oak Timber", 3], ["Flawless Fluorite", 3]], "&mdash;"],
+    ["Restaurant Floor Lamp", "Restaurant set", [["Quality Timber", 9], ["Ore", 8], ["Roaming Oak Timber", 3], ["Flawless Fluorite", 3]], "&mdash;"],
+    ["Cloudy Wall Lamp", "Lighting", [["Stone", 7], ["Quality Timber", 3], ["Ore", 9], ["Flawless Fluorite", 5]], "&mdash;"],
+    ["Dew Floor Lamp", "Lighting", [["Quality Timber", 12], ["Ore", 3], ["Roaming Oak Timber", 4], ["Flawless Fluorite", 2]], "&mdash;"],
+    ["Daisy Bud Light", "Lighting", [["Quality Timber", 9], ["Ore", 8], ["Roaming Oak Timber", 3], ["Flawless Fluorite", 3]], "&mdash;"],
+    ["Round Ceiling Light", "Lighting", [["Ore", 5], ["Flawless Fluorite", 1]], "&mdash;"],
+    ["Square Ceiling Light", "Lighting", [["Ore", 5], ["Flawless Fluorite", 1]], "&mdash;"],
+    ["Stove", "Kitchen", [["Timber", 8], ["Ore", 3]], "&mdash;"],
+    ["Simplistic Stove", "Kitchen", [["Quality Timber", 8], ["Ore", 9]], "&mdash;"],
+    ["Natural Stove", "Kitchen", [["Stone", 7], ["Quality Timber", 8], ["Flawless Fluorite", 4]], "&mdash;"],
+    ["Industrial Stove", "Kitchen", [["Quality Timber", 3], ["Ore", 12], ["Flawless Fluorite", 5]], "&mdash;"],
+    ["Wood Fiber Rug", "Furniture", [["Timber", 8], ["Branch", 8]], "&mdash;"],
+    ["Simple Wood Fiber Mat", "Furniture", [["Timber", 8], ["Branch", 8]], "&mdash;"],
+    ["Ceramic Sink", "Kitchen", [["Stone", 8], ["Ore", 3]], "&mdash;"],
+    ["Ceramic Teapot Set", "Kitchen", [["Stone", 7], ["Ore", 3]], "&mdash;"],
+    ["Potted Succulent", "Furniture", [["Stone", 8], ["Branch", 5]], "&mdash;"],
+    ["Snake Plant", "Furniture", [["Stone", 8], ["Branch", 5]], "&mdash;"],
+    ["Fertilizer", "Tools &amp; consumables", [["Weeds", 4], ["Timber", 3]], "&mdash;"],
+    ["Quality Fertilizer", "Tools &amp; consumables", [["Weeds", 6], ["Rare Timber", 2]], "&mdash;"],
+    ["Top Fertilizer", "Tools &amp; consumables", [["Weeds", 8], ["Loam", 3]], "&mdash;"],
+    ["Handmade Fertilizer", "Tools &amp; consumables", [["Dog Poop", 1]], "&mdash;"],
+    ["Collector's Wall Decor Set", "Collector's set", [["Timber", 5], ["Ore", 18], ["Flawless Fluorite", 10]], "&mdash;"],
+    ["Collector's Armchair", "Collector's set", [["Timber", 10], ["Quality Timber", 18], ["Roaming Oak Timber", 10]], "&mdash;"],
+    ["Collector's Showcase", "Collector's set", [["Timber", 10], ["Quality Timber", 18], ["Roaming Oak Timber", 10]], "&mdash;"],
+    ["Collector's Sicilian Desk", "Collector's set", [["Quality Timber", 17], ["Ore", 5], ["Roaming Oak Timber", 8], ["Flawless Fluorite", 3]], "&mdash;"],
+    ["Collector's Retro Blossom Lamp", "Collector's set", [["Timber", 5], ["Rare Timber", 9], ["Flawless Fluorite", 10]], "&mdash;"],
+    ["Collector's Display Cabinet", "Collector's set", [["Timber", 10], ["Rare Timber", 18], ["Roaming Oak Timber", 10]], "&mdash;"],
+    ["Collector's Reading Set", "Collector's set", [["Timber", 8], ["Rare Timber", 16], ["Roaming Oak Timber", 10]], "&mdash;"],
+    ["Joinery Floor Mirror", "Joinery set", [["Timber", 2], ["Stone", 6], ["Quality Timber", 3]], "&mdash;"],
+    ["Joinery Seasoning Rack", "Joinery set", [["Timber", 4], ["Stone", 4], ["Quality Timber", 3]], "&mdash;"],
+    ["Joinery Partition Wall", "Joinery set", [["Timber", 8], ["Quality Timber", 4]], "&mdash;"],
+    ["Joinery Single Bed", "Joinery set", [["Timber", 8], ["Quality Timber", 4]], "&mdash;"],
+    ["Joinery Double Bed", "Joinery set", [["Timber", 10], ["Quality Timber", 5]], "&mdash;"],
+    ["Joinery Stool", "Joinery set", [["Timber", 8], ["Branch", 8]], "&mdash;"],
+    ["Joinery 2-Seat Sofa", "Joinery set", [["Timber", 10], ["Quality Timber", 2]], "&mdash;"],
+    ["Joinery Chair", "Joinery set", [["Timber", 10]], "&mdash;"],
+    ["Joinery Single Sofa", "Joinery set", [["Timber", 8], ["Quality Timber", 4]], "&mdash;"],
+    ["Joinery Tea Table", "Joinery set", [["Timber", 9], ["Quality Timber", 2]], "&mdash;"],
+    ["Joinery Table", "Joinery set", [["Timber", 9], ["Quality Timber", 2]], "&mdash;"],
+    ["Joinery Desk Lamp", "Joinery set", [["Timber", 6], ["Stone", 2], ["Ore", 3]], "&mdash;"],
+    ["Joinery Floor Lamp", "Joinery set", [["Timber", 6], ["Stone", 2], ["Ore", 3]], "&mdash;"],
+    ["Joinery Closet", "Joinery set", [["Timber", 8], ["Quality Timber", 3], ["Branch", 2]], "&mdash;"],
+    ["Joinery Nightstand", "Joinery set", [["Timber", 7], ["Quality Timber", 3], ["Branch", 2]], "&mdash;"],
+    ["Joinery Side Table", "Joinery set", [["Timber", 9], ["Branch", 4]], "&mdash;"],
+    ["Joinery Drawer Cabinet", "Joinery set", [["Timber", 7], ["Quality Timber", 3], ["Branch", 2]], "&mdash;"],
+    ["Joinery Wall Cabinet", "Joinery set", [["Timber", 7], ["Quality Timber", 3], ["Branch", 2]], "&mdash;"],
+    ["Kitty Sofa", "Kitty set", [["Quality Timber", 11], ["Ore", 6], ["Roaming Oak Timber", 3], ["Flawless Fluorite", 3]], "&mdash;"],
+    ["Kitty Tea Table", "Kitty set", [["Quality Timber", 12], ["Ore", 3], ["Roaming Oak Timber", 4], ["Flawless Fluorite", 2]], "&mdash;"],
+    ["Kitty Nightstand", "Kitty set", [["Quality Timber", 12], ["Ore", 3], ["Roaming Oak Timber", 4], ["Flawless Fluorite", 2]], "&mdash;"],
+    ["Kitty Rug", "Kitty set", [["Timber", 8], ["Quality Timber", 13], ["Roaming Oak Timber", 5]], "&mdash;"],
+    ["Kitty Desk Ornament", "Kitty set", [["Stone", 7], ["Quality Timber", 3], ["Ore", 9], ["Flawless Fluorite", 5]], "&mdash;"],
+    ["Jazz Sofa", "Jazz set", [["Rare Timber", 5], ["Ore", 6], ["Roaming Oak Timber", 3], ["Flawless Fluorite", 3]], "&mdash;"],
+    ["Jazz Tall Stool", "Jazz set", [["Rare Timber", 8], ["Roaming Oak Timber", 5]], "&mdash;"],
+    ["Jazz Neon Light", "Jazz set", [["Stone", 8], ["Rare Timber", 6], ["Roaming Oak Timber", 3], ["Flawless Fluorite", 3]], "&mdash;"],
+    ["Oceanic Single Sofa", "Oceanic set", [["Rare Timber", 5], ["Ore", 6], ["Roaming Oak Timber", 3], ["Flawless Fluorite", 3]], "&mdash;"],
+    ["Oceanic 2-Seat Sofa", "Oceanic set", [["Rare Timber", 5], ["Ore", 6], ["Roaming Oak Timber", 3], ["Flawless Fluorite", 3]], "&mdash;"],
+    ["Oceanic Bar Stool", "Oceanic set", [["Timber", 3], ["Quality Timber", 13]], "&mdash;"],
+    ["Oceanic Chair", "Oceanic set", [["Timber", 3], ["Quality Timber", 13]], "&mdash;"],
+    ["Oceanic Round Table", "Oceanic set", [["Quality Timber", 10], ["Rare Timber", 3]], "&mdash;"],
+    ["Oceanic Floor Lamp", "Oceanic set", [["Quality Timber", 9], ["Ore", 8], ["Roaming Oak Timber", 3], ["Flawless Fluorite", 3]], "&mdash;"],
+    ["Oceanic Accent Table", "Oceanic set", [["Rare Timber", 6], ["Ore", 3], ["Roaming Oak Timber", 4], ["Flawless Fluorite", 2]], "&mdash;"]
   ];
 
   // Cooking recipes: [name, level, ingredients[[name,qty]...], cost(number|label string), rawProfit(number|null), star1Price, maxStar(optional, default 5)]
@@ -3916,10 +4053,10 @@
     { cat:"Events — Moonlit Night (Qixi Fair)", kind:"limited", note:"From the Moonlit Night / Qixi Fair event (Aug 15 – Sep 7, 2026, now ended). Cooked on the normal stove, no special station needed. Ingredients, cost, and sell price aren't confirmed &mdash; it wasn't listed in AthenaMM's price sheet. Listed here as a placeholder until real data is found.", items:[
       ["Qiaoguo","—",[],"unconfirmed",null,null]
     ]},
-    { cat:"Events — Burger Bliss", kind:"limited", note:"Burger Bliss event, September 15 – October 11, 2026 (server time). Cooked on the normal stove, no special station needed. Confirmed against AthenaMM's community price sheet. Ace Beef and Ace Chicken come from the Ace cattle/chicken you can place and raise on your farm.", items:[
-      ["Septuple King Burger",1,[["Wheat",1],["Ace Beef",2],["Lettuce",1]],640,1220,9760],
-      ["Saucy Crispy Chicken Wings",1,[["Ace Chicken",3],["Cooking Oil",1]],400,450,3600],
-      ["Double Chicken Burger",1,[["Wheat",2],["Ace Chicken",1],["Lettuce",1]],435,1210,9680]
+    { cat:"Events — Burger Bliss", kind:"limited", note:"Burger Bliss (Burger King collab) event, September 2026 – October 12, 2026 (server time). Cooked on the normal stove. Recipes and prices here are not in AthenaMM's sheet yet and still need confirming in-game &mdash; the 1&#9733; price is the base and higher stars scale from it.", items:[
+      ["Septuple King Burger",1,[["Wheat",1],["Ace Beef",2],["Lettuce",1]],640,null,1220],
+      ["Saucy Crispy Chicken Wings",1,[["Ace Chicken",3],["Cooking Oil",1]],400,null,450],
+      ["Double Chicken Burger",1,[["Wheat",2],["Ace Chicken",1],["Lettuce",1]],435,null,1210]
     ]}
   ];
   // star1Price (r[5]) is null for a handful of event recipes where no sell
@@ -5029,7 +5166,7 @@
   var matArt = MATERIALS.some(function(m){ return hasArt(m[0]); });
   MATERIALS.forEach(function(m){
     var tr = document.createElement("tr");
-    tr.innerHTML = "<td>"+labelWithArt(m[0], matArt)+"</td><td>"+m[1]+"</td><td>"+m[2]+"</td><td class='muted'>"+(m[3]||"")+"</td>";
+    tr.innerHTML = "<td>"+labelWithArt(m[0], matArt)+"</td><td>"+m[1]+"</td><td class='num-cell'>"+m[2]+"</td><td>"+m[3]+"</td><td class='muted'>"+(m[4]||"")+"</td>";
     matBody.appendChild(tr);
   });
 
@@ -5793,18 +5930,18 @@
   // sp the event or attractor it needs.
   var SPECIES = {
     birds: [
-      {"n": "Greater Flamingo", "lv": 1, "w": "SRNB", "at": ["Old Sea", "Whale Sea", "Zephyr Sea", "East Sea", "Amethyst Beach", "Onsen Mountain Lake", "Meadow Lake", "Suburban Lake", "Forest Lake", "Rosy River", "Shallow River", "Tranquil River", "Giantwood River"], "r": "2m", "p": 480},
-      {"n": "Mallard", "lv": 1, "w": "SRNB", "at": ["Onsen Mountain Lake", "Meadow Lake", "Suburban Lake", "Forest Lake", "Deer Tower"], "r": "2m", "p": 400},
+      {"n": "Greater Flamingo", "lv": 1, "w": "SRNB", "at": ["Onsen Mountain Lake", "Meadow Lake", "Suburban Lake", "Forest Lake", "Rosy River", "Shallow River", "Tranquil River", "Giantwood River"], "r": "2m", "p": 480},
+      {"n": "Mallard", "lv": 1, "w": "SRNB", "at": ["Onsen Mountain Lake", "Meadow Lake", "Suburban Lake", "Forest Lake"], "r": "2m", "p": 400},
       {"n": "Eurasian Wigeon", "lv": 2, "w": "SRNB", "at": ["Rosy River", "Shallow River", "Tranquil River", "Giantwood River"], "r": "2m", "p": 560},
       {"n": "King Eider", "lv": 3, "w": "SRNB", "at": ["Rosy River", "Shallow River", "Tranquil River", "Giantwood River"], "r": "2m", "p": 560},
       {"n": "Seagull", "lv": 2, "w": "SRNB", "at": ["Old Sea", "Whale Sea", "Zephyr Sea", "East Sea", "Amethyst Beach"], "r": "2m", "p": 560},
       {"n": "European Shag", "lv": 3, "w": "SRNB", "at": ["Old Sea", "Whale Sea", "Zephyr Sea", "East Sea"], "r": "2m", "p": 560},
-      {"n": "Blue Peafowl", "lv": 1, "w": "SRNB", "at": ["Old Sea", "Art Street", "Rosy River", "Zephyr Sea", "Central Square", "Jump Puzzle", "East Sea", "East Pier of Fishing Village", "Fishing Village Square", "Flower Field", "Forest Island", "Forest Lake", "Garden Street", "Giantwood River", "Onsen Mountain Lake", "Onsen", "Lighthouse", "Meadow Lake", "Spirit-Oak Pine Forest", "Tranquil River", "Stone Cliff", "Shallow River", "Suburban Lake", "Suburbs", "Wharf", "Ruins", "Residential Street", "Deer Tower", "Amethyst Beach", "Crater Lake", "Whale Mountain", "Whale Sea", "Windmill Flower Field"], "r": "5m", "p": 320, "sp": "Nest of Hundreds Event"},
-      {"n": "Blue-and-Yellow Macaw", "lv": 1, "w": "SRNB", "at": ["Old Sea", "Art Street", "Rosy River", "Zephyr Sea", "Central Square", "Jump Puzzle", "East Sea", "East Pier of Fishing Village", "Fishing Village Square", "Flower Field", "Forest Island", "Forest Lake", "Garden Street", "Giantwood River", "Onsen Mountain Lake", "Onsen", "Lighthouse", "Meadow Lake", "Spirit-Oak Pine Forest", "Tranquil River", "Stone Cliff", "Shallow River", "Suburban Lake", "Suburbs", "Wharf", "Ruins", "Residential Street", "Deer Tower", "Amethyst Beach", "Crater Lake", "Whale Mountain", "Whale Sea", "Windmill Flower Field"], "r": "3m", "p": 240, "sp": "Nest of Hundreds Event"},
-      {"n": "Red-and-Green Macaw", "lv": 3, "w": "SRNB", "at": ["Old Sea", "Art Street", "Rosy River", "Zephyr Sea", "Central Square", "Jump Puzzle", "East Sea", "East Pier of Fishing Village", "Fishing Village Square", "Flower Field", "Forest Island", "Forest Lake", "Garden Street", "Giantwood River", "Onsen Mountain Lake", "Onsen", "Lighthouse", "Meadow Lake", "Spirit-Oak Pine Forest", "Tranquil River", "Stone Cliff", "Shallow River", "Suburban Lake", "Suburbs", "Wharf", "Ruins", "Residential Street", "Deer Tower", "Amethyst Beach", "Crater Lake", "Whale Mountain", "Whale Sea", "Windmill Flower Field"], "r": "3m", "p": 320, "sp": "Nest of Hundreds Event"},
-      {"n": "Great Green Macaw", "lv": 5, "w": "SB", "at": ["Old Sea", "Art Street", "Rosy River", "Zephyr Sea", "Central Square", "Jump Puzzle", "East Sea", "East Pier of Fishing Village", "Fishing Village Square", "Flower Field", "Forest Island", "Forest Lake", "Garden Street", "Giantwood River", "Onsen Mountain Lake", "Onsen", "Lighthouse", "Meadow Lake", "Spirit-Oak Pine Forest", "Tranquil River", "Stone Cliff", "Shallow River", "Suburban Lake", "Suburbs", "Wharf", "Ruins", "Residential Street", "Deer Tower", "Amethyst Beach", "Crater Lake", "Whale Mountain", "Whale Sea", "Windmill Flower Field"], "r": "2m", "p": 480, "sp": "Nest of Hundreds Event"},
-      {"n": "Lear's Macaw", "lv": 7, "w": "RNB", "at": ["Old Sea", "Art Street", "Rosy River", "Zephyr Sea", "Central Square", "Jump Puzzle", "East Sea", "East Pier of Fishing Village", "Fishing Village Square", "Flower Field", "Forest Island", "Forest Lake", "Garden Street", "Giantwood River", "Onsen Mountain Lake", "Onsen", "Lighthouse", "Meadow Lake", "Spirit-Oak Pine Forest", "Tranquil River", "Stone Cliff", "Shallow River", "Suburban Lake", "Suburbs", "Wharf", "Ruins", "Residential Street", "Deer Tower", "Amethyst Beach", "Crater Lake", "Whale Mountain", "Whale Sea", "Windmill Flower Field"], "r": "≤3m", "p": 720, "sp": "Nest of Hundreds Event"},
-      {"n": "Green Peafowl", "lv": 9, "w": "SRNB", "at": ["Old Sea", "Art Street", "Rosy River", "Zephyr Sea", "Central Square", "Jump Puzzle", "East Sea", "East Pier of Fishing Village", "Fishing Village Square", "Flower Field", "Forest Island", "Forest Lake", "Garden Street", "Giantwood River", "Onsen Mountain Lake", "Onsen", "Lighthouse", "Meadow Lake", "Spirit-Oak Pine Forest", "Tranquil River", "Stone Cliff", "Shallow River", "Suburban Lake", "Suburbs", "Wharf", "Ruins", "Residential Street", "Deer Tower", "Amethyst Beach", "Crater Lake", "Whale Mountain", "Whale Sea", "Windmill Flower Field"], "p": 1200, "sp": "Nest of Hundreds Event"},
+      {"n": "Blue Peafowl", "lv": 1, "w": "SRNB", "at": [], "r": "5m", "p": 320, "sp": "Nest of Hundreds event"},
+      {"n": "Blue-and-Yellow Macaw", "lv": 1, "w": "SRNB", "at": [], "r": "3m", "p": 240, "sp": "Nest of Hundreds event"},
+      {"n": "Red-and-Green Macaw", "lv": 3, "w": "SRNB", "at": [], "r": "3m", "p": 320, "sp": "Nest of Hundreds event"},
+      {"n": "Great Green Macaw", "lv": 5, "w": "SB", "at": [], "r": "2m", "p": 480, "sp": "Nest of Hundreds event"},
+      {"n": "Lear's Macaw", "lv": 7, "w": "RNB", "at": [], "r": "≤3m", "p": 720, "sp": "Nest of Hundreds event"},
+      {"n": "Green Peafowl", "lv": 9, "w": "SRNB", "at": [], "p": 1200, "sp": "Nest of Hundreds event"},
       {"n": "Eurasian Collared Dove", "lv": 1, "w": "SRNB", "at": ["Suburbs", "Art Street", "Garden Street", "Residential Street"], "r": "2m", "p": 320},
       {"n": "Eurasian Golden Oriole", "lv": 3, "w": "SRNB", "at": ["Suburbs", "Art Street", "Garden Street", "Residential Street"], "p": 480},
       {"n": "Eurasian Bullfinch", "lv": 1, "w": "SRNB", "at": ["Suburbs"], "r": "2m", "p": 240},
@@ -5829,14 +5966,14 @@
       {"n": "Eurasian Chaffinch", "lv": 1, "w": "SRNB", "at": ["Flower Field"], "r": "2m", "p": 240},
       {"n": "White Wagtail", "lv": 4, "w": "SRNB", "at": ["Flower Field", "Amethyst Beach"], "p": 480},
       {"n": "American Flamingo", "lv": 9, "w": "B", "at": ["Flower Field", "Amethyst Beach"], "r": "≤4m", "p": 1760},
-      {"n": "Wallace's Fruit Dove", "lv": 4, "w": "SRNB", "at": ["Flower Field"], "r": "3m", "p": 560},
-      {"n": "Azure Tit", "lv": 7, "w": "SRNB", "at": ["Flower Field"], "p": 720},
+      {"n": "Wallace's Fruit Dove", "lv": 4, "w": "SRNB", "at": ["Flower Field", "Windmill Flower Field"], "r": "3m", "p": 560},
+      {"n": "Azure Tit", "lv": 7, "w": "SRNB", "at": ["Flower Field", "Windmill Flower Field"], "p": 720},
       {"n": "Pink Pigeon", "lv": 8, "w": "SRNB", "at": ["Flower Field", "Whale Mountain"], "p": 880},
       {"n": "Brown Noddy", "lv": 5, "w": "SRNB", "at": ["Old Sea", "Zephyr Sea", "East Sea", "Amethyst Beach", "Whale Sea"], "p": 720},
-      {"n": "Great Tit", "lv": 1, "w": "SRNB", "at": ["Onsen"], "r": "2m", "p": 240},
-      {"n": "Bearded Reedling", "lv": 2, "w": "SRNB", "at": ["Onsen"], "r": "2m", "p": 320},
-      {"n": "African Olive Pigeon", "lv": 5, "w": "SRNB", "at": ["Onsen"], "r": "4m", "p": 880},
-      {"n": "Peregrine Falcon", "lv": 8, "w": "RNB", "at": ["Onsen"], "r": "≤4m", "p": 2080},
+      {"n": "Great Tit", "lv": 1, "w": "SRNB", "at": ["Onsen", "Stone Cliff", "Crater Lake", "Ruins"], "r": "2m", "p": 240},
+      {"n": "Bearded Reedling", "lv": 2, "w": "SRNB", "at": ["Onsen", "Stone Cliff", "Crater Lake", "Ruins"], "r": "2m", "p": 320},
+      {"n": "African Olive Pigeon", "lv": 5, "w": "SRNB", "at": ["Onsen", "Stone Cliff", "Crater Lake", "Ruins"], "r": "4m", "p": 880},
+      {"n": "Peregrine Falcon", "lv": 8, "w": "RNB", "at": ["Onsen", "Stone Cliff", "Crater Lake", "Ruins"], "r": "≤4m", "p": 2080},
       {"n": "Hawfinch", "lv": 6, "w": "SRNB", "at": ["Crater Lake"], "p": 480},
       {"n": "Long Eared Owl", "lv": 6, "w": "SB", "at": ["Stone Cliff"], "r": "4m", "p": 1520},
       {"n": "European Bee-Eater", "lv": 5, "w": "RNB", "at": ["Onsen Mountain Lake"], "r": "≤3m", "p": 720},
@@ -5858,17 +5995,17 @@
       {"n": "Eagle-Owl", "lv": 10, "w": "RNB", "at": ["Deer Tower"], "r": "≤4m", "p": 2080},
     ],
     insects: [
-      {"n": "Large Red Damselfly", "lv": 1, "w": "SRNB", "at": ["Old Sea", "Whale Sea", "Zephyr Sea", "East Sea", "Amethyst Beach", "Onsen Mountain Lake", "Meadow Lake", "Suburban Lake", "Forest Lake", "Rosy River", "Shallow River", "Tranquil River", "Giantwood River"], "p": 280},
+      {"n": "Large Red Damselfly", "lv": 1, "w": "SRNB", "at": ["Onsen Mountain Lake", "Meadow Lake", "Suburban Lake", "Forest Lake", "Rosy River", "Shallow River", "Tranquil River", "Giantwood River"], "p": 280},
       {"n": "Orange-Tip", "lv": 1, "w": "SRNB", "at": ["Central Square", "Residential Street", "Art Street", "Garden Street"], "p": 240},
       {"n": "Common Blue Butterfly", "lv": 2, "w": "SRNB", "at": ["Central Square", "Residential Street", "Art Street", "Garden Street"], "p": 600},
-      {"n": "Sulkowsky's Morpho", "lv": 2, "w": "SRNB", "at": ["Old Sea", "Art Street", "Rosy River", "Zephyr Sea", "Central Square", "Jump Puzzle", "East Sea", "East Pier of Fishing Village", "Fishing Village Square", "Flower Field", "Forest Island", "Forest Lake", "Garden Street", "Giantwood River", "Onsen Mountain Lake", "Onsen", "Lighthouse", "Meadow Lake", "Spirit-Oak Pine Forest", "Tranquil River", "Stone Cliff", "Shallow River", "Suburban Lake", "Suburbs", "Wharf", "Ruins", "Residential Street", "Deer Tower", "Amethyst Beach", "Crater Lake", "Whale Mountain", "Whale Sea", "Windmill Flower Field"], "p": 720, "sp": "Inflatable Insect Attractor"},
+      {"n": "Sulkowsky's Morpho", "lv": 2, "w": "SRNB", "at": [], "p": 720, "sp": "Inflatable Insect Attractor"},
       {"n": "Common Whitetail", "lv": 4, "w": "RNB", "at": ["Rosy River", "Shallow River", "Tranquil River", "Giantwood River"], "p": 600},
-      {"n": "Apollo", "lv": 1, "w": "SRNB", "at": ["Old Sea", "Art Street", "Rosy River", "Zephyr Sea", "Central Square", "Jump Puzzle", "East Sea", "East Pier of Fishing Village", "Fishing Village Square", "Flower Field", "Forest Island", "Forest Lake", "Garden Street", "Giantwood River", "Onsen Mountain Lake", "Onsen", "Lighthouse", "Meadow Lake", "Spirit-Oak Pine Forest", "Tranquil River", "Stone Cliff", "Shallow River", "Suburban Lake", "Suburbs", "Wharf", "Ruins", "Residential Street", "Deer Tower", "Amethyst Beach", "Crater Lake", "Whale Mountain", "Whale Sea", "Windmill Flower Field"], "p": 240, "sp": "Bait the Insects Event"},
-      {"n": "Postman Butterfly", "lv": 1, "w": "SRNB", "at": ["Old Sea", "Art Street", "Rosy River", "Zephyr Sea", "Central Square", "Jump Puzzle", "East Sea", "East Pier of Fishing Village", "Fishing Village Square", "Flower Field", "Forest Island", "Forest Lake", "Garden Street", "Giantwood River", "Onsen Mountain Lake", "Onsen", "Lighthouse", "Meadow Lake", "Spirit-Oak Pine Forest", "Tranquil River", "Stone Cliff", "Shallow River", "Suburban Lake", "Suburbs", "Wharf", "Ruins", "Residential Street", "Deer Tower", "Amethyst Beach", "Crater Lake", "Whale Mountain", "Whale Sea", "Windmill Flower Field"], "p": 240, "sp": "Bait the Insects Event"},
-      {"n": "Pink Katydid", "lv": 3, "w": "SRNB", "at": ["Old Sea", "Art Street", "Rosy River", "Zephyr Sea", "Central Square", "Jump Puzzle", "East Sea", "East Pier of Fishing Village", "Fishing Village Square", "Flower Field", "Forest Island", "Forest Lake", "Garden Street", "Giantwood River", "Onsen Mountain Lake", "Onsen", "Lighthouse", "Meadow Lake", "Spirit-Oak Pine Forest", "Tranquil River", "Stone Cliff", "Shallow River", "Suburban Lake", "Suburbs", "Wharf", "Ruins", "Residential Street", "Deer Tower", "Amethyst Beach", "Crater Lake", "Whale Mountain", "Whale Sea", "Windmill Flower Field"], "p": 720, "sp": "Bait the Insects Event"},
-      {"n": "White Witch", "lv": 6, "w": "SB", "at": ["Old Sea", "Art Street", "Rosy River", "Zephyr Sea", "Central Square", "Jump Puzzle", "East Sea", "East Pier of Fishing Village", "Fishing Village Square", "Flower Field", "Forest Island", "Forest Lake", "Garden Street", "Giantwood River", "Onsen Mountain Lake", "Onsen", "Lighthouse", "Meadow Lake", "Spirit-Oak Pine Forest", "Tranquil River", "Stone Cliff", "Shallow River", "Suburban Lake", "Suburbs", "Wharf", "Ruins", "Residential Street", "Deer Tower", "Amethyst Beach", "Crater Lake", "Whale Mountain", "Whale Sea", "Windmill Flower Field"], "p": 720, "sp": "Bait the Insects Event"},
-      {"n": "Chestnut Tiger", "lv": 7, "w": "RNB", "at": ["Old Sea", "Art Street", "Rosy River", "Zephyr Sea", "Central Square", "Jump Puzzle", "East Sea", "East Pier of Fishing Village", "Fishing Village Square", "Flower Field", "Forest Island", "Forest Lake", "Garden Street", "Giantwood River", "Onsen Mountain Lake", "Onsen", "Lighthouse", "Meadow Lake", "Spirit-Oak Pine Forest", "Tranquil River", "Stone Cliff", "Shallow River", "Suburban Lake", "Suburbs", "Wharf", "Ruins", "Residential Street", "Deer Tower", "Amethyst Beach", "Crater Lake", "Whale Mountain", "Whale Sea", "Windmill Flower Field"], "p": 1200, "sp": "Bait the Insects Event"},
-      {"n": "Rainbow Stag Beetle", "lv": 10, "w": "SRNB", "at": ["Old Sea", "Art Street", "Rosy River", "Zephyr Sea", "Central Square", "Jump Puzzle", "East Sea", "East Pier of Fishing Village", "Fishing Village Square", "Flower Field", "Forest Island", "Forest Lake", "Garden Street", "Giantwood River", "Onsen Mountain Lake", "Onsen", "Lighthouse", "Meadow Lake", "Spirit-Oak Pine Forest", "Tranquil River", "Stone Cliff", "Shallow River", "Suburban Lake", "Suburbs", "Wharf", "Ruins", "Residential Street", "Deer Tower", "Amethyst Beach", "Crater Lake", "Whale Mountain", "Whale Sea", "Windmill Flower Field"], "p": 3520, "sp": "Bait the Insects Event"},
+      {"n": "Apollo", "lv": 1, "w": "SRNB", "at": [], "p": 240, "sp": "Bait the Insects event"},
+      {"n": "Postman Butterfly", "lv": 1, "w": "SRNB", "at": [], "p": 240, "sp": "Bait the Insects event"},
+      {"n": "Pink Katydid", "lv": 3, "w": "SRNB", "at": [], "p": 720, "sp": "Bait the Insects event"},
+      {"n": "White Witch", "lv": 6, "w": "SB", "at": [], "p": 720, "sp": "Bait the Insects event"},
+      {"n": "Chestnut Tiger", "lv": 7, "w": "RNB", "at": [], "p": 1200, "sp": "Bait the Insects event"},
+      {"n": "Rainbow Stag Beetle", "lv": 10, "w": "SRNB", "at": ["Ruins"], "p": 3520, "sp": "Bait the Insects event"},
       {"n": "European Firebug", "lv": 1, "w": "SRNB", "at": ["Suburbs", "Art Street", "Garden Street", "Residential Street"], "p": 280},
       {"n": "Amethyst Flower Beetle", "lv": 2, "w": "RNB", "at": ["Suburbs", "Art Street", "Garden Street", "Residential Street"], "p": 1320},
       {"n": "Rajah Brooke's Birdwing", "lv": 3, "w": "SRNB", "at": ["Suburbs", "Art Street", "Garden Street", "Residential Street"], "t": "7:00PM-1:00PM", "p": 720},
@@ -5886,14 +6023,14 @@
       {"n": "Blue Shieldbug", "lv": 6, "w": "SRNB", "at": ["Lighthouse"], "t": "7:00AM-7:00PM", "p": 880},
       {"n": "Horned Beetle", "lv": 8, "w": "SB", "at": ["East Pier of Fishing Village"], "t": "6:00PM-6:00AM", "p": 2200},
       {"n": "Cerulean Carpenter", "lv": 9, "w": "B", "at": ["Fishing Village Square"], "t": "6:00PM-6:00AM", "p": 3520},
-      {"n": "Gold Grasshoppers", "lv": 1, "w": "SRNB", "at": ["Onsen"], "p": 360},
-      {"n": "Green Tiger Beetle", "lv": 2, "w": "SRNB", "at": ["Onsen"], "p": 880},
-      {"n": "Fire-Colored Beetle", "lv": 3, "w": "SRNB", "at": ["Onsen"], "p": 880},
+      {"n": "Gold Grasshoppers", "lv": 1, "w": "SRNB", "at": ["Onsen", "Stone Cliff", "Crater Lake", "Ruins"], "p": 360},
+      {"n": "Green Tiger Beetle", "lv": 2, "w": "SRNB", "at": ["Onsen", "Stone Cliff", "Crater Lake", "Ruins"], "p": 880},
+      {"n": "Fire-Colored Beetle", "lv": 3, "w": "SRNB", "at": ["Onsen", "Stone Cliff", "Crater Lake", "Ruins"], "p": 880},
       {"n": "Four-Spotted Ladybug", "lv": 4, "w": "RNB", "at": ["Crater Lake"], "p": 1320},
       {"n": "Hercules Beetle", "lv": 10, "w": "SB", "at": ["Crater Lake"], "t": "12:00PM-12:00AM", "p": 3520},
       {"n": "Mediterranean Mantis", "lv": 5, "w": "SB", "at": ["Stone Cliff"], "t": "1:00PM-7:00AM", "p": 1560},
       {"n": "Giant Asian Mantis", "lv": 5, "w": "SB", "at": ["Ruins"], "p": 3120},
-      {"n": "Mourning Cloak", "lv": 5, "w": "SB", "at": ["Onsen"], "t": "1:00AM-7:00PM", "p": 720},
+      {"n": "Mourning Cloak", "lv": 5, "w": "SB", "at": ["Onsen", "Stone Cliff", "Crater Lake", "Ruins"], "t": "1:00AM-7:00PM", "p": 720},
       {"n": "Silver Jewel Scarab", "lv": 6, "w": "SB", "at": ["Stone Cliff"], "t": "1:00AM-7:00PM", "p": 1320},
       {"n": "Crimson Marsh Glider", "lv": 7, "w": "B", "at": ["Onsen Mountain Lake"], "t": "1:00PM-7:00AM", "p": 1480},
       {"n": "Minotaur Beetle", "lv": 8, "w": "SRNB", "at": ["Ruins"], "t": "1:00AM-7:00PM", "p": 2200},
@@ -5962,9 +6099,9 @@
       {"n": "Pufferfish", "lv": 6, "w": "SRNB", "at": ["Old Sea"], "t": "1:00PM-1:00AM", "d": "Medium", "p": 1840},
       {"n": "European Eel", "lv": 7, "w": "B", "at": ["Old Sea"], "t": "7:00AM-1:00AM", "d": "Medium", "p": 3040},
       {"n": "Smooth Hammerhead", "lv": 10, "w": "B", "at": ["Old Sea"], "t": "6:00PM-6:00AM", "d": "Large", "p": 6800},
-      {"n": "Common Bleak", "lv": 1, "w": "SRNB", "at": ["Onsen Mountain Lake", "Meadow Lake", "Suburban Lake", "Forest Lake", "Deer Tower"], "d": "Small", "p": 400},
-      {"n": "Common Chub", "lv": 1, "w": "SRNB", "at": ["Onsen Mountain Lake", "Meadow Lake", "Suburban Lake", "Forest Lake", "Deer Tower"], "d": "Medium", "p": 600},
-      {"n": "Edible Frog", "lv": 4, "w": "SRNB", "at": ["Onsen Mountain Lake", "Meadow Lake", "Suburban Lake", "Forest Lake", "Deer Tower"], "d": "Blue", "p": 2560, "sp": "Mermaid Attractor"},
+      {"n": "Common Bleak", "lv": 1, "w": "SRNB", "at": ["Onsen Mountain Lake", "Meadow Lake", "Suburban Lake", "Forest Lake"], "d": "Small", "p": 400},
+      {"n": "Common Chub", "lv": 1, "w": "SRNB", "at": ["Onsen Mountain Lake", "Meadow Lake", "Suburban Lake", "Forest Lake"], "d": "Medium", "p": 600},
+      {"n": "Edible Frog", "lv": 4, "w": "SRNB", "at": ["Onsen Mountain Lake", "Meadow Lake", "Suburban Lake", "Forest Lake"], "d": "Blue", "p": 2560, "sp": "Mermaid Attractor"},
       {"n": "Tench", "lv": 1, "w": "SRNB", "at": ["Forest Lake"], "d": "Small", "p": 400},
       {"n": "Largemouth Bass", "lv": 4, "w": "SB", "at": ["Forest Lake"], "d": "Medium", "p": 1840},
       {"n": "Mud Sunfish", "lv": 2, "w": "SRNB", "at": ["Forest Lake"], "t": "7:00AM-2:00AM", "d": "Small", "p": 800},
@@ -7530,6 +7667,18 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     var kind = capLN ? "capacitor" : el ? "electron" : (window.Notification ? "web" : "none");
     var granted = kind === "electron";   // the desktop app needs no prompt
     if(kind === "web") granted = Notification.permission === "granted";
+    // Android: permission granted on an earlier run has to be read back, not
+    // assumed missing — otherwise the first reschedule after every launch saw
+    // "not granted", cancelled every pending alert and scheduled nothing, so
+    // nothing could ever fire once the app was closed again.
+    var readyCbs = [];
+    function onReady(fn){ readyCbs.push(fn); }
+    if(kind === "capacitor" && capLN.checkPermissions){
+      capLN.checkPermissions().then(function(r){
+        granted = !!(r && r.display === "granted");
+        readyCbs.forEach(function(fn){ try{ fn(); }catch(e){} });
+      }).catch(function(){});
+    }
 
     // Android leaves the little red count on the launcher icon until every
     // delivered notification is explicitly cleared — opening the app doesn't
@@ -7600,7 +7749,8 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
 
     // items: [{ at: epoch-ms, title, body }] — everything still in the future.
     function schedule(items){
-      if(!granted || !enabled) items = [];
+      if(!granted) return;          // nothing can be shown — leave whatever is pending alone
+      if(!enabled) items = [];      // switched off in the app: clear what's pending
       var future = items.filter(function(i){ return i.at > Date.now() + 1500; })
                         .sort(function(a,b){ return a.at - b.at; })
                         .slice(0, 48);
@@ -7641,6 +7791,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       setEnabled: setEnabled,
       ensure: ensure,
       schedule: schedule,
+      onReady: onReady,
       // undefined when the plugin isn't there (anything but a real Android
       // build) — callers check this before offering the battery-fix button.
       hasBatteryControl: !!battOpt,
@@ -7886,7 +8037,115 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       });
       return out;
     }
-    function pushSchedule(){ HH_NOTIFY.schedule(upcoming()); }
+    var lastPlanSig = "";
+    function planSig(){
+      return T().plots.map(function(p){ return p.id + ":" + p.endsAt + ":" + (p.weeds ? p.weeds.length : 0); }).join("|") +
+        "#" + (HH_NOTIFY.isGranted() ? 1 : 0) + (HH_NOTIFY.isEnabled() ? 1 : 0);
+    }
+    function pushSchedule(){ lastPlanSig = planSig(); HH_NOTIFY.schedule(upcoming()); }
+    // Permission granted on an earlier run is only known a moment after launch
+    // on Android; re-plan as soon as it is.
+    if(HH_NOTIFY.onReady) HH_NOTIFY.onReady(function(){ paintSettings(); pushSchedule(); });
+    // The first timer someone starts is the natural moment to ask for alerts.
+    function askAlertsOnce(){
+      if(HH_NOTIFY.kind === "none" || HH_NOTIFY.isGranted()) return;
+      try{ if(localStorage.getItem("hh.alertsAsked")) return; localStorage.setItem("hh.alertsAsked", "1"); }catch(e){}
+      HH_NOTIFY.ensure().then(function(){ paintSettings(); pushSchedule(); });
+    }
+
+    // ---- in-app pop-ups --------------------------------------------------
+    // A card slides in (on any tab) whenever a timer is ready — including ones
+    // that finished while the app was closed, shown the moment it's opened —
+    // and a check mark confirms each collect. Which ready timers have already
+    // been shown is remembered per device, so a reload doesn't repeat them.
+    var popHost = document.createElement("div");
+    popHost.className = "hp-host"; popHost.setAttribute("aria-live", "polite");
+    document.body.appendChild(popHost);
+    var SEEN_KEY = "hh.readySeen";
+    var seen = {};
+    try{ (JSON.parse(localStorage.getItem(SEEN_KEY) || "[]") || []).forEach(function(k){ seen[k] = 1; }); }catch(e){}
+    function saveSeen(){ try{ localStorage.setItem(SEEN_KEY, JSON.stringify(Object.keys(seen))); }catch(e){} }
+    function readyKey(p){ return p.id + ":" + p.endsAt; }
+    function kindWord(p){ return p.kind === "order" ? "Order" : (FLOWER_ICON[p.crop] ? "Flower" : "Crop"); }
+    function popEl(cls, html, ttl){
+      var d = document.createElement("div");
+      d.className = "hp " + cls;
+      d.innerHTML = html;
+      popHost.appendChild(d);
+      requestAnimationFrame(function(){ d.classList.add("in"); });
+      if(ttl) setTimeout(function(){ closePop(d); }, ttl);
+      return d;
+    }
+    function closePop(d){
+      if(!d || !d.parentNode) return;
+      d.classList.remove("in"); d.classList.add("out");
+      setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); }, 260);
+    }
+    function dropPop(id){
+      Array.prototype.forEach.call(popHost.querySelectorAll('.hp[data-id="' + id + '"]'), closePop);
+    }
+    var CHECK_SVG = '<svg class="hp-check" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="16"/><path d="M10.5 18.5l5 5 10-11"/></svg>';
+    function popReady(p){
+      var ord = p.kind === "order";
+      var d = popEl("hp-ready",
+        '<div class="hp-art">' + artHtml(p, "hp-img", "hp-ico") + '</div>' +
+        '<div class="hp-txt"><b>' + escapeHtml(p.crop) + (ord ? " has arrived!" : " is ready!") + '</b>' +
+          '<span>' + kindWord(p) + " · ready " + escapeHtml(at(p.endsAt)) + '</span></div>' +
+        '<div class="hp-btns"><button type="button" class="hp-go" data-act="collect">' + (ord ? "Picked up" : "Collect") + '</button>' +
+          '<button type="button" class="hp-ghost" data-act="view">View</button></div>' +
+        '<button type="button" class="hp-x" data-act="close" aria-label="Dismiss">×</button>', 20000);
+      d.setAttribute("data-id", p.id);
+    }
+    function popMany(list){
+      var names = list.map(function(p){ return p.crop; });
+      var d = popEl("hp-ready",
+        '<div class="hp-art"><span class="hp-ico">⏰</span></div>' +
+        '<div class="hp-txt"><b>' + list.length + ' timers are ready!</b><span>' + escapeHtml(names.slice(0, 4).join(", ") + (names.length > 4 ? "…" : "")) + '</span></div>' +
+        '<div class="hp-btns"><button type="button" class="hp-go" data-act="collect-all">Collect all</button>' +
+          '<button type="button" class="hp-ghost" data-act="view">View</button></div>' +
+        '<button type="button" class="hp-x" data-act="close" aria-label="Dismiss">×</button>', 20000);
+      d.setAttribute("data-many", "1");
+    }
+    function popDone(p, wasReady){
+      var ord = p.kind === "order";
+      var word = !wasReady ? "finished early" : (ord ? "picked up" : "collected");
+      popEl("hp-done", CHECK_SVG + '<div class="hp-txt"><b>' + escapeHtml(p.crop) + " " + word + '</b></div>', 2600);
+    }
+    function popDoneMany(list){
+      popEl("hp-done", CHECK_SVG + '<div class="hp-txt"><b>' + list.length + ' timers collected</b></div>', 2600);
+      Array.prototype.forEach.call(popHost.querySelectorAll('.hp[data-many]'), closePop);
+    }
+    popHost.addEventListener("click", function(e){
+      var b = e.target.closest("button[data-act]"); if(!b) return;
+      var card = b.closest(".hp"), act = b.getAttribute("data-act");
+      if(act === "close"){ closePop(card); return; }
+      if(act === "view"){
+        closePop(card);
+        var tab = document.querySelector('nav.tabs > button[data-tab="timers"]');
+        if(tab) tab.click();
+        showPane("active");
+        return;
+      }
+      if(act === "collect-all"){ closePop(card); collectAllReady(); return; }
+      if(act === "collect"){
+        var id = card.getAttribute("data-id"), p = null;
+        T().plots.forEach(function(x){ if(x.id === id) p = x; });
+        if(p) collect(p); else closePop(card);
+      }
+    });
+    function checkReadyPops(){
+      var now = Date.now(), fresh = [], live = {};
+      T().plots.forEach(function(p){
+        if(p.endsAt > now) return;
+        var k = readyKey(p); live[k] = 1;
+        if(!seen[k]){ seen[k] = 1; fresh.push(p); }
+      });
+      Object.keys(seen).forEach(function(k){ if(!live[k]) delete seen[k]; });
+      saveSeen();
+      if(!fresh.length) return;
+      if(fresh.length > 3) popMany(fresh);
+      else fresh.forEach(popReady);
+    }
 
     // ---- starting a timer -------------------------------------------------
     function weedTimes(startedAt, dur){
@@ -7902,7 +8161,9 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
         weeds: weedsIn.checked ? weedTimes(now, d) : null,
         weedsDone: 0, done: false
       });
-      save(); render(); pushSchedule();
+      save(); render(); pushSchedule(); askAlertsOnce();
+      showPane("active");
+      toast("🌱 " + picked + " planted — ready " + at(now + d) + ".");
     });
 
     function remove(id){
@@ -7940,13 +8201,18 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
           replant: false, weeds: null, weedsDone: 0, done: false
         });
         omName.value = "";
-        omStatus.textContent = "Started “" + name + "” — ready " + at(now + d) + ".";
-        save(); render(); pushSchedule();
+        omStatus.textContent = "";
+        save(); render(); pushSchedule(); askAlertsOnce();
+        showPane("active");
+        toast((ORDER_ICON[omCat] || "📦") + " “" + name + "” ordered — arrives " + at(now + d) + ".");
       });
       omName.addEventListener("keydown", function(e){ if(e.key === "Enter") omAdd.click(); });
     })();
 
-    function collect(p){
+    function collect(p, opts){
+      var wasReady = p.endsAt <= Date.now();
+      dropPop(p.id);
+      if(!(opts && opts.silent)) popDone(p, wasReady);
       if(p.replant && p.kind !== "order"){
         var now = Date.now();
         p.startedAt = now; p.endsAt = now + p.dur; p.done = false;
@@ -8047,13 +8313,81 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       "</div>";
     }
 
+    // ---- section tiles ------------------------------------------------------
+    // One section of the Timers tab at a time, picked from a row of tiles that
+    // each carry a live one-line status, instead of every card stacked down
+    // the page. The last choice is remembered on this device only.
+    var tmTiles = document.querySelectorAll("#tm-dock > .tm-tile");
+    var tmPanes = document.querySelectorAll("#panel-timers .tm-pane");
+    var tmFilterBox = document.getElementById("tm-filter");
+    var tmToast = document.getElementById("tm-toast");
+    var tmShow = "all", tmToastTimer = null;
+    function showPane(name){
+      Array.prototype.forEach.call(tmTiles, function(t){ t.setAttribute("aria-selected", t.getAttribute("data-pane") === name ? "true" : "false"); });
+      Array.prototype.forEach.call(tmPanes, function(pn){ pn.hidden = pn.getAttribute("data-pane") !== name; });
+      try{ localStorage.setItem("hh.timerPane", name); }catch(e){}
+    }
+    Array.prototype.forEach.call(tmTiles, function(t){
+      t.addEventListener("click", function(){ showPane(t.getAttribute("data-pane")); });
+    });
+    (function(){
+      var saved = null;
+      try{ saved = localStorage.getItem("hh.timerPane"); }catch(e){}
+      var valid = ["active","farm","orders","reset"];
+      showPane(valid.indexOf(saved) >= 0 ? saved : (T().plots.length ? "active" : "farm"));
+    })();
+    function toast(msg){
+      if(!tmToast) return;
+      tmToast.textContent = msg; tmToast.hidden = false;
+      clearTimeout(tmToastTimer);
+      tmToastTimer = setTimeout(function(){ tmToast.hidden = true; }, 4000);
+    }
+    if(tmFilterBox) tmFilterBox.addEventListener("click", function(e){
+      var b = e.target.closest("button[data-show]"); if(!b) return;
+      tmShow = b.getAttribute("data-show");
+      Array.prototype.forEach.call(tmFilterBox.querySelectorAll("button"), function(o){ o.setAttribute("aria-pressed", o === b ? "true" : "false"); });
+      render();
+    });
+    function setSub(id, text, hot){
+      var el = document.getElementById(id); if(!el) return;
+      if(el.textContent !== text) el.textContent = text;
+      el.classList.toggle("hot", !!hot);
+    }
+    function paintTiles(plots, now){
+      var crops = plots.filter(function(p){ return p.kind !== "order"; });
+      var orders = plots.filter(function(p){ return p.kind === "order"; });
+      var ready = plots.filter(function(p){ return p.endsAt <= now; }).length;
+      var running = plots.length - ready;
+      setSub("tm-sub-active", !plots.length ? "Nothing running"
+        : (ready ? ready + " ready" + (running ? " · " + running + " running" : "") : running + " running"), ready > 0);
+      var dot = document.getElementById("tm-dot-active"); if(dot) dot.hidden = !ready;
+      function nextOf(list, word, idle){
+        var live = list.filter(function(p){ return p.endsAt > now; });
+        var rdy = list.length - live.length;
+        if(!list.length) return [idle, false];
+        if(rdy) return [rdy + " ready" + (live.length ? " · " + live.length + " " + word : ""), true];
+        var soon = live.reduce(function(a,b){ return a.endsAt < b.endsAt ? a : b; });
+        return [live.length + " " + word + " · next " + omDur(soon.endsAt - now), false];
+      }
+      var f = nextOf(crops, "growing", "Plant a crop or flower"); setSub("tm-sub-farm", f[0], f[1]);
+      var o = nextOf(orders, "on the way", "Start an order"); setSub("tm-sub-orders", o[0], o[1]);
+      var rc = document.getElementById("ct-reset-clock");
+      if(rc) setSub("tm-sub-reset", "in " + rc.textContent.trim(), false);
+      if(tmFilterBox) tmFilterBox.hidden = !(crops.length && orders.length);
+    }
+
     function render(){
       var now = Date.now();
       var plots = T().plots.slice().sort(function(a,b){ return a.endsAt - b.endsAt; });
-      listEl.innerHTML = plots.map(function(p){
+      var shown = plots.filter(function(p){
+        if(!tmFilterBox || tmFilterBox.hidden || tmShow === "all") return true;
+        return tmShow === "orders" ? p.kind === "order" : p.kind !== "order";
+      });
+      listEl.innerHTML = shown.map(function(p){
         return p.kind === "order" ? orderCardHtml(p, now) : rowHtml(p, now);
       }).join("");
       emptyEl.hidden = plots.length > 0;
+      paintTiles(plots, now);
       var readyCount = plots.filter(function(p){ return p.endsAt <= now; }).length;
       harvestAllBtn.hidden = readyCount < 2;
       harvestAllBtn.textContent = "Collect all " + readyCount + " ready";
@@ -8098,10 +8432,14 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       if(btn.getAttribute("data-act") === "remove") remove(id);
       else collect(p);
     });
-    harvestAllBtn.addEventListener("click", function(){
+    harvestAllBtn.addEventListener("click", function(){ collectAllReady(); });
+    function collectAllReady(){
       var now = Date.now();
-      T().plots.slice().forEach(function(p){ if(p.endsAt <= now) collect(p); });
-    });
+      var ready = T().plots.filter(function(p){ return p.endsAt <= now; });
+      ready.slice().forEach(function(p){ collect(p, { silent:true }); });
+      if(ready.length === 1) popDone(ready[0], true);
+      else if(ready.length) popDoneMany(ready);
+    }
 
     // ---- alert settings ---------------------------------------------------
     function paintSettings(){
@@ -8163,10 +8501,15 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
         var allOrders = ripe.every(function(p){ return p.kind === "order"; });
         announce(ripe.length === 1 ? uniq[0] + " is ready"
                  : ripe.length + (allOrders ? " orders are ready" : " timers are ready"), uniq.join(", "), true);
-        ripe.forEach(function(p){ if(p.replant && p.kind !== "order") collect(p); });
+        ripe.forEach(function(p){ if(p.replant && p.kind !== "order") collect(p, { silent:true }); });
       }
       if(changed) save();
       render();
+      checkReadyPops();
+      // Anything that changed the set of timers without going through this
+      // closure (a timer synced in from another device, mostly) still gets
+      // handed to the OS so it can alert with the app closed.
+      if(planSig() !== lastPlanSig) pushSchedule();
     }
     // ---- the daily reset ---------------------------------------------------
     // Growth timers themselves run on plain real time, so they need nothing from

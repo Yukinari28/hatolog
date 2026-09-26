@@ -48,6 +48,11 @@ let quitting = false;
 // cancelled plot can't leave a stale alert behind.
 let alertTimers = [];
 let pendingAuthUrl = extractAuthUrl(process.argv);
+// Launched by Windows at sign-in (see setLoginItemSettings below): stay in the
+// tray instead of popping a window in someone's face every time they log in.
+const startHidden = process.argv.includes("--hidden");
+let toldAboutTray = false;
+const ICON_PATH = path.join(__dirname, "build", "icon.ico");
 
 function extractAuthUrl(argv) {
   const hit = argv.find((a) => typeof a === "string" && a.startsWith(PROTOCOL + "://"));
@@ -76,7 +81,8 @@ function createWindow() {
     minHeight: 560,
     autoHideMenuBar: true,
     title: "HatoLog",
-    icon: path.join(__dirname, "build", "icon.ico"),
+    icon: ICON_PATH,
+    show: !startHidden,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -111,6 +117,11 @@ function createWindow() {
     if (quitting) return;
     e.preventDefault();
     mainWindow.hide();
+    // Once, so nobody thinks closing the window stopped their alerts.
+    if (!toldAboutTray) {
+      toldAboutTray = true;
+      showAlert("HatoLog is still running", "Your timer alerts keep working from the tray. Right-click the heart icon to quit.");
+    }
   });
   mainWindow.webContents.once("did-finish-load", deliverPendingAuthUrl);
 }
@@ -208,17 +219,50 @@ function showWindow() {
 // given keep their appointment. "Quit" in the tray menu is the real exit.
 function createTray() {
   if (tray) return;
-  tray = new Tray(nativeImage.createEmpty());
-  tray.setToolTip("HatoLog");
-  tray.setContextMenu(Menu.buildFromTemplate([
+  // A real icon: an empty image left the tray entry invisible, so there was
+  // no way to see the app was still running (or to reopen/quit it).
+  let img = nativeImage.createFromPath(ICON_PATH);
+  if (img.isEmpty()) img = nativeImage.createEmpty();
+  tray = new Tray(img);
+  tray.setToolTip("HatoLog — timer alerts are on");
+  const rebuild = () => tray.setContextMenu(Menu.buildFromTemplate([
     { label: "Open HatoLog", click: showWindow },
     { type: "separator" },
-    { label: "Quit", click: () => { quitting = true; app.quit(); } }
+    {
+      label: "Start with Windows (keeps alerts working after a restart)",
+      type: "checkbox",
+      checked: getAutoStart(),
+      click: (item) => { setAutoStart(item.checked); rebuild(); }
+    },
+    { type: "separator" },
+    { label: "Quit (alerts stop)", click: () => { quitting = true; app.quit(); } }
   ]));
+  rebuild();
   tray.on("click", showWindow);
 }
 
+// Alerts can only fire while the app is running, so by default it starts with
+// Windows, straight into the tray. Only for the installed build — a dev run
+// shouldn't register itself. Can be switched off from the tray menu.
+function getAutoStart() {
+  try { return app.getLoginItemSettings({ args: ["--hidden"] }).openAtLogin; } catch (e) { return false; }
+}
+function setAutoStart(on) {
+  try { app.setLoginItemSettings({ openAtLogin: !!on, args: ["--hidden"] }); } catch (e) {}
+}
+
 app.whenReady().then(() => {
+  if (app.isPackaged) {
+    // First run only: turn auto-start on. A later "off" from the tray is kept,
+    // because Windows remembers it and this marker file stops us re-enabling.
+    const marker = path.join(app.getPath("userData"), "autostart-initialised");
+    try {
+      require("fs").accessSync(marker);
+    } catch (e) {
+      setAutoStart(true);
+      try { require("fs").writeFileSync(marker, "1"); } catch (e2) {}
+    }
+  }
   createWindow();
   createTray();
   app.on("activate", () => {
