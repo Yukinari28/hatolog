@@ -8763,6 +8763,10 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
   // time, converted per the server the person picked.
   // type: gilded | speciality | moonlight. start/end: "YYYY-MM-DD HH:MM" server time (end null = TBA).
   var BANNERS = [
+    { type:"gilded", name:"Starspell Voyager", start:"2026-09-26 07:00", end:"2026-11-28 05:59",
+      img:"https://clan.fastly.steamstatic.com/images/45812445/1e34da9cd3412be301fad8592d988e428829c1e9.jpg", yt:"xX5q46Gn4xE",
+      note:"Wizard-themed: outfits like Owl Messenger and Cat Witch; furniture &amp; building materials including the Starlight Steam Locomotive.",
+      src:"https://store.steampowered.com/news/app/4025700/view/713412856137122628" },
     { type:"gilded", name:"Heartbond Vow", start:"2026-07-25 06:00", end:"2026-09-26 05:59",
       img:"https://clan.fastly.steamstatic.com/images/45812445/2f89b4e1ef2d9868c097081c9a7bd42008425aee.jpg",
       note:"Outfits: Heartbond Vow (Windbloom) &amp; (Lightplume). Furniture &amp; building: Heartbond Vow (Eternity).",
@@ -8770,7 +8774,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     { type:"gilded", name:"Lost in the Forest", start:"2026-08-15 06:00", end:"2026-10-17 05:59", img:null, yt:"pBu2j13g0hM",
       note:"New Gilded Acorn Exhibition.",
       src:"https://x.com/MyHeartopia/status/2086376941985100166" },
-    { type:"speciality", name:"Nostalgic Blossom", start:"2026-09-10 06:00", end:null, img:null,
+    { type:"speciality", name:"Nostalgic Blossom", start:"2026-09-10 06:00", end:null, img:null, yt:"VCgMJE_i_BY",
       note:"Outfit sets Nostalgic Blossom (Yearning) and more, drawn with Exhibition Passes.",
       src:"https://x.com/MyHeartopia/status/2095799037735932274" },
     { type:"moonlight", name:"Pajama Jam", start:"2026-09-10 06:00", end:null, img:null, yt:"pFnJbQfS1KU",
@@ -9117,21 +9121,34 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       });
     });
     // Codes announced in official posts, picked up by the server's news relay.
+    // Codes from official Steam posts (/api/news) and from the Discord
+    // channel the server watches (/api/codes). A hand-kept entry for the same
+    // code wins, since it usually has cleaner reward text.
+    var fromSteam = [], fromDiscord = [];
+    function getJSON(u){ return fetch(u, { cache:"no-cache" }).then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; }); }
     function loadFound(){
       if(!/^https?:/.test(location.protocol)) return;
-      fetch("/api/news", { cache:"no-cache" }).then(function(r){ return r.ok ? r.json() : null; }).then(function(d){
-        if(!d || !d.items) return;
-        found = [];
-        d.items.forEach(function(n){ (n.codes || []).forEach(function(c){
-          found.push({ code:c.code, rewards:c.rewards || "", expires:c.expires || null, addedAt:n.date, fromNews: Date.now() - n.date < 5*86400000 });
-        }); });
+      Promise.all([getJSON("/api/news"), getJSON("/api/codes")]).then(function(r){
+        var news = r[0], dc = r[1];
+        if(news && news.items){
+          fromSteam = [];
+          news.items.forEach(function(n){ (n.codes || []).forEach(function(c){
+            fromSteam.push({ code:c.code, rewards:c.rewards || "", expires:c.expires || null, addedAt:n.date, fromNews: Date.now() - n.date < 5*86400000 });
+          }); });
+        }
+        if(dc && dc.codes){
+          fromDiscord = dc.codes.map(function(c){
+            return { code:c.code, rewards:c.rewards || "", expires:c.expires || null, addedAt:c.posted, fromNews: Date.now() - c.posted < 5*86400000 };
+          });
+        }
+        found = fromDiscord.concat(fromSteam);
         paint();
-      }).catch(function(){});
+      });
     }
     window.__hhRepaintCodes = paint;   // cloud sync brings claims from other devices
     paint(); loadFound();
     setInterval(paint, 60000);
-    setInterval(loadFound, 30 * 60000);
+    setInterval(loadFound, 10 * 60000);
   })();
 
   // ---------- CROP CALCULATOR ----------

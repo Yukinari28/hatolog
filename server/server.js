@@ -287,6 +287,86 @@ function youtubeVideos() {
   }).catch(() => []);
 }
 
+// ---- redeem codes from a Discord channel ----------------------------------
+// Set two Railway variables and the server reads that channel with a bot
+// every 10 minutes, picking out gift codes in the same formats Heartopia uses
+// ("Gift Code: xxxx", "Redemption Deadline: …"), plus codes written in
+// `backticks` in any message that mentions a code.
+//   DISCORD_BOT_TOKEN   — the bot's token (never put this in the code/repo)
+//   DISCORD_CODES_CHANNEL — channel ID (several allowed, comma-separated)
+// The bot needs View Channel + Read Message History on that channel, and the
+// "Message Content Intent" switched on in the Discord developer portal.
+const DISCORD_TTL = 10 * 60 * 1000;
+let discordCache = { at: 0, body: Buffer.from(JSON.stringify({ codes: [], at: 0, enabled: false })) };
+let discordInFlight = null;
+function discordGet(path, token) {
+  return new Promise((resolve) => {
+    const req = https.get("https://discord.com/api/v10" + path, {
+      timeout: 8000,
+      headers: { Authorization: "Bot " + token, "User-Agent": "DiscordBot (https://hatolog.up.railway.app, 1.0)" }
+    }, (r) => {
+      let raw = "";
+      r.setEncoding("utf8");
+      r.on("data", (c) => { raw += c; if (raw.length > 3e6) req.destroy(); });
+      r.on("end", () => {
+        if (r.statusCode !== 200) { console.warn("HatoLog: Discord " + path + " → HTTP " + r.statusCode); return resolve(null); }
+        try { resolve(JSON.parse(raw)); } catch (e) { resolve(null); }
+      });
+    });
+    req.on("timeout", () => req.destroy());
+    req.on("error", () => resolve(null));
+  });
+}
+function messageText(m) {
+  const parts = [m.content || ""];
+  (m.embeds || []).forEach((e) => {
+    parts.push(e.title || "", e.description || "");
+    (e.fields || []).forEach((f) => parts.push((f.name || "") + ": " + (f.value || "")));
+  });
+  return parts.join("\n");
+}
+function codesFromMessage(text) {
+  const found = findCodes(text);
+  if (/code/i.test(text)) {
+    const re = /`([A-Za-z0-9]{5,24})`/g;
+    let m;
+    while ((m = re.exec(text))) {
+      const code = m[1];
+      if (!/\d/.test(code) && code.length < 8) continue;   // skip plain words in backticks
+      if (!found.some((c) => c.code.toLowerCase() === code.toLowerCase())) {
+        found.push({ code: code, expires: findCodes("Gift Code: " + code + " " + text.slice(text.indexOf(code)))[0].expires, rewards: "" });
+      }
+    }
+  }
+  return found;
+}
+function getDiscordCodes(done) {
+  const token = process.env.DISCORD_BOT_TOKEN;
+  const channels = String(process.env.DISCORD_CODES_CHANNEL || "").split(",").map((s) => s.trim()).filter((s) => /^\d{15,22}$/.test(s));
+  if (!token || !channels.length) return done(discordCache.body);
+  if (Date.now() - discordCache.at < DISCORD_TTL) return done(discordCache.body);
+  if (!discordInFlight) {
+    discordInFlight = Promise.all(channels.map((ch) => discordGet("/channels/" + ch + "/messages?limit=50", token).then((msgs) => {
+      const out = [];
+      (Array.isArray(msgs) ? msgs : []).forEach((m) => {
+        const posted = Date.parse(m.timestamp) || Date.now();
+        codesFromMessage(messageText(m)).forEach((c) => out.push({
+          code: c.code, rewards: c.rewards || "", expires: c.expires || null, posted: posted
+        }));
+      });
+      return out;
+    }))).then((lists) => {
+      const seen = {}, codes = [];
+      [].concat.apply([], lists).sort((a, b) => b.posted - a.posted).forEach((c) => {
+        const k = c.code.toLowerCase(); if (seen[k]) return; seen[k] = 1; codes.push(c);
+      });
+      discordCache = { at: Date.now(), body: Buffer.from(JSON.stringify({ codes: codes, at: Date.now(), enabled: true })) };
+    }).catch(() => { discordCache.at = Date.now() - DISCORD_TTL + 2 * 60 * 1000; })
+      .then(() => { discordInFlight = null; });
+  }
+  discordInFlight.then(() => done(discordCache.body));
+}
+
 function getNews(done) {
   if (Date.now() - newsCache.at < NEWS_TTL) return done(newsCache.body);
   if (!newsInFlight) {
@@ -346,6 +426,10 @@ const server = http.createServer((req, res) => {
 
   if (url === "/health") {
     return send(req, res, 200, Buffer.from("ok"), "text/plain; charset=utf-8", "no-store");
+  }
+
+  if (url === "/api/codes") {
+    return getDiscordCodes((body) => send(req, res, 200, body, TYPES[".json"], "public, max-age=120"));
   }
 
   if (url === "/api/news") {
