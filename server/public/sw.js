@@ -39,6 +39,25 @@ self.addEventListener("fetch", function (e) {
   // Version checks must always go to the network, or the app would be asking a
   // cache whether the cache is stale.
   if (req.url.indexOf("/version.json") !== -1) return;
+  // Live feeds (banners, announcements, redeem codes) are never answered from
+  // the cache — the server already caches them sensibly on its side.
+  if (req.url.indexOf("/api/") !== -1) return;
+
+  // Data files: network first so updates show up, the cached copy only when
+  // offline. (Cache-first here used to pin the very first copy forever.)
+  if (/\.json(\?|$)/.test(req.url)) {
+    e.respondWith(
+      caches.open(CACHE).then(function (c) {
+        return fetch(req, { cache: "no-cache" }).then(function (res) {
+          if (res && res.ok && res.type === "basic") c.put(req, res.clone());
+          return res;
+        }).catch(function () {
+          return c.match(req).then(function (hit) { return hit || Response.error(); });
+        });
+      })
+    );
+    return;
+  }
 
   if (isPage(req)) {
     e.respondWith(

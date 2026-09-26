@@ -25,6 +25,8 @@ const path = require("path");
 const zlib = require("zlib");
 const crypto = require("crypto");
 
+const https = require("https");
+
 const PORT = process.env.PORT || 3000;
 const ROOT = path.join(__dirname, "public");
 
@@ -145,6 +147,90 @@ function send(req, res, status, body, type, cache, key) {
   res.end(body);
 }
 
+// ---- official Steam news, relayed ------------------------------------------
+// Heartopia's announcements (every new Gilded Acorn Exhibition, Speciality
+// Exhibition and Moonlight Treasure Box gets a post) come from Steam's public
+// news feed. Browsers can't read that feed directly (no CORS), so this relays
+// a trimmed copy. Fetched at most once per 30 minutes no matter how many
+// people open the app, and the last good copy is served if Steam is down.
+const STEAM_APP = 4025700;
+const NEWS_TTL = 30 * 60 * 1000;
+let newsCache = { at: 0, body: Buffer.from(JSON.stringify({ items: [], at: 0 })) };
+let newsInFlight = null;
+
+// Heartopia posts gift codes in a fixed shape: "Gift Code: xxxx" / "Redeem
+// Code: xxxx" / "Redemption Code: xxxx", usually followed by "Redemption
+// Deadline: <date> 10:59 (UTC-5)". Pull those out so a code announced in an
+// official post reaches the app without anyone copying it by hand.
+function findCodes(text) {
+  const t = String(text || "").replace(/\[\/?[a-z0-9]+[^\]]*\]/gi, " ");
+  const out = [];
+  const re = /(?:gift|redeem|redemption)\s*code[^:：\n]{0,20}[:：]\s*([A-Za-z0-9]{4,24})/gi;
+  let m;
+  while ((m = re.exec(t))) {
+    const code = m[1];
+    if (out.some((c) => c.code.toLowerCase() === code.toLowerCase())) continue;
+    const after = t.slice(m.index, m.index + 600);
+    let expires = null;
+    const d1 = after.match(/deadline[^:：]*[:：]\s*([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4}),?\s+(\d{1,2}):(\d{2})\s*\(UTC\s*([+-]\d{1,2})\)/i);
+    const d2 = after.match(/deadline[^:：]*[:：]\s*(\d{4})[\/.-](\d{1,2})[\/.-](\d{1,2})\s+(\d{1,2}):(\d{2})(?:\s*\(UTC\s*([+-]\d{1,2})\))?/i);
+    const MON = { jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11 };
+    if (d1 && MON[d1[1].slice(0, 3).toLowerCase()] != null) {
+      expires = Date.UTC(+d1[3], MON[d1[1].slice(0, 3).toLowerCase()], +d1[2], +d1[4] - (+d1[6]), +d1[5]);
+    } else if (d2) {
+      const off = d2[6] != null ? +d2[6] : -5;
+      expires = Date.UTC(+d2[1], +d2[2] - 1, +d2[3], +d2[4] - off, +d2[5]);
+    }
+    const rw = after.match(/rewards?[^:：]*[:：]\s*([^\n]{3,160})/i);
+    out.push({ code: code, expires: expires, rewards: rw ? rw[1].split(/(?:redemption|redeem)?\s*deadline|⏰/i)[0].replace(/\s+/g, " ").trim().slice(0, 140) : "" });
+  }
+  return out;
+}
+
+function trimNews(json) {
+  const items = ((json && json.appnews && json.appnews.newsitems) || []).map((n) => {
+    const contents = String(n.contents || "");
+    let img = null;
+    const m = contents.match(/\{STEAM_CLAN_IMAGE\}\/([^\s\[\]"'<>]+\.(?:jpg|jpeg|png|gif|webp))/i) ||
+              contents.match(/(https:\/\/[^\s\[\]"'<>]+steamstatic\.com[^\s\[\]"'<>]+\.(?:jpg|jpeg|png|gif|webp))/i);
+    if (m) img = m[1].startsWith("http") ? m[1] : "https://clan.fastly.steamstatic.com/images/" + m[1];
+    return {
+      title: String(n.title || "").slice(0, 200),
+      date: (n.date || 0) * 1000,
+      url: String(n.url || ""),
+      img: img,
+      codes: findCodes(contents)
+    };
+  });
+  return { items: items, at: Date.now() };
+}
+
+function getNews(done) {
+  if (Date.now() - newsCache.at < NEWS_TTL) return done(newsCache.body);
+  if (!newsInFlight) {
+    newsInFlight = new Promise((resolve) => {
+      const u = "https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid=" + STEAM_APP +
+                "&count=30&maxlength=0&format=json";
+      const req = https.get(u, { timeout: 8000 }, (r) => {
+        let raw = "";
+        r.setEncoding("utf8");
+        r.on("data", (c) => { raw += c; if (raw.length > 5e6) req.destroy(); });
+        r.on("end", () => {
+          try {
+            newsCache = { at: Date.now(), body: Buffer.from(JSON.stringify(trimNews(JSON.parse(raw)))) };
+          } catch (e) {
+            newsCache.at = Date.now() - NEWS_TTL + 5 * 60 * 1000; // retry in 5 min
+          }
+          resolve();
+        });
+      });
+      req.on("timeout", () => req.destroy());
+      req.on("error", () => { newsCache.at = Date.now() - NEWS_TTL + 5 * 60 * 1000; resolve(); });
+    }).then(() => { newsInFlight = null; });
+  }
+  newsInFlight.then(() => done(newsCache.body));
+}
+
 const server = http.createServer((req, res) => {
   // Nothing here is more than a few KB or needs a body, and every real
   // request is a GET — HEAD is let through for uptime checks.
@@ -173,6 +259,10 @@ const server = http.createServer((req, res) => {
 
   if (url === "/health") {
     return send(req, res, 200, Buffer.from("ok"), "text/plain; charset=utf-8", "no-store");
+  }
+
+  if (url === "/api/news") {
+    return getNews((body) => send(req, res, 200, body, TYPES[".json"], "public, max-age=600"));
   }
 
   if (url === "/version.json") {
