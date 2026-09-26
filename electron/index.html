@@ -8790,7 +8790,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     var fullHost = document.getElementById("bn-full");
     var newsHost = document.getElementById("bn-news");
     if(!menuHost && !fullHost) return;
-    var DAY = 86400000, news = [], newsTried = false;
+    var DAY = 86400000, news = [], videos = [], newsTried = false;
 
     function serverInstant(s){
       if(!s) return null;
@@ -8803,18 +8803,21 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     function newsFor(b){
       var n = norm(b.name);
       for(var i=0;i<news.length;i++) if(news[i].img && norm(news[i].title).indexOf(n) >= 0) return news[i];
+      for(var j=0;j<videos.length;j++) if(videos[j].img && norm(videos[j].title).indexOf(n) >= 0) return videos[j];
       return null;
     }
     function safeUrl(u){ return /^https:\/\//.test(u || "") ? String(u).replace(/"/g, "%22") : null; }
     function imgOf(b){
       var n = newsFor(b);
-      return b.img || (n && n.img) || (b.yt ? "https://i.ytimg.com/vi/" + b.yt + "/hqdefault.jpg" : null);
+      return b.img || (n && n.img) || (b.yt ? "https://i.ytimg.com/vi/" + b.yt + "/mqdefault.jpg" : null);
     }
     // Prefer the official Steam post (opens for anyone, full details) over X,
     // which often wants a login before it shows anything.
     function linkOf(b){
       var nn = norm(b.name);
       for(var i=0;i<news.length;i++) if(norm(news[i].title).indexOf(nn) >= 0 && news[i].url) return news[i].url;
+      for(var j=0;j<videos.length;j++) if(norm(videos[j].title).indexOf(nn) >= 0 && videos[j].url) return videos[j].url;
+      if(b.yt) return "https://www.youtube.com/watch?v=" + b.yt;
       return b.src || null;
     }
     function dur(ms){
@@ -8934,7 +8937,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     function loadNews(){
       if(!/^https?:/.test(location.protocol)) { newsTried = true; paint(); return; }
       fetch("/api/news", { cache:"no-cache" }).then(function(r){ return r.ok ? r.json() : null; })
-        .then(function(d){ newsTried = true; if(d && d.items) news = d.items; paint(); })
+        .then(function(d){ newsTried = true; if(d && d.items) news = d.items; if(d && d.videos) videos = d.videos; paint(); })
         .catch(function(){ newsTried = true; paint(); });
     }
     var openAll = document.getElementById("bn-open-all");

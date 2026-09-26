@@ -198,7 +198,7 @@ function trimNews(json) {
     // is the banner's key art, so use that when there's nothing else.
     const yt = contents.match(/previewyoutube=([A-Za-z0-9_-]{11})/i) ||
                contents.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/i);
-    const ytImg = yt ? "https://i.ytimg.com/vi/" + yt[1] + "/hqdefault.jpg" : null;
+    const ytImg = yt ? "https://i.ytimg.com/vi/" + yt[1] + "/mqdefault.jpg" : null;
     return {
       title: String(n.title || "").slice(0, 200),
       date: (n.date || 0) * 1000,
@@ -257,6 +257,36 @@ function addHeaderImages(data) {
     .then(() => { data.items.forEach((n) => { if (!n.img && n.ytImg) n.img = n.ytImg; delete n.ytImg; }); return data; });
 }
 
+// The official YouTube channel posts every PV (each banner's key art is its
+// thumbnail). YouTube offers a public RSS feed per channel for exactly this
+// kind of reader. The channel's feed address is read from its own page so a
+// wrong hard-coded ID can't silently break it.
+const YT_HANDLE_URL = "https://www.youtube.com/@Heartopia-official";
+const YT_FALLBACK_ID = "UC_gTYJtc_Mwjg48XLlF_0ZQ";
+let ytChannelId = null;
+function youtubeVideos() {
+  const idP = ytChannelId ? Promise.resolve(ytChannelId) : fetchText(YT_HANDLE_URL, 0).then((html) => {
+    const m = html && (html.match(/feeds\/videos\.xml\?channel_id=(UC[A-Za-z0-9_-]{22})/) ||
+                       html.match(/"(?:channelId|externalId)":"(UC[A-Za-z0-9_-]{22})"/));
+    ytChannelId = m ? m[1] : null;
+    return ytChannelId || YT_FALLBACK_ID;
+  });
+  return idP.then((id) => fetchText("https://www.youtube.com/feeds/videos.xml?channel_id=" + id, 0)).then((xml) => {
+    if (!xml) return [];
+    const out = [];
+    const decode = (s) => s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+    (xml.match(/<entry>[\s\S]*?<\/entry>/g) || []).forEach((e) => {
+      const vid = (e.match(/<yt:videoId>([A-Za-z0-9_-]{11})<\/yt:videoId>/) || [])[1];
+      const title = (e.match(/<title>([\s\S]*?)<\/title>/) || [])[1];
+      const pub = (e.match(/<published>([^<]+)<\/published>/) || [])[1];
+      if (!vid || !title) return;
+      out.push({ title: decode(title).slice(0, 200), date: Date.parse(pub) || 0,
+        url: "https://www.youtube.com/watch?v=" + vid, img: "https://i.ytimg.com/vi/" + vid + "/mqdefault.jpg" });
+    });
+    return out;
+  }).catch(() => []);
+}
+
 function getNews(done) {
   if (Date.now() - newsCache.at < NEWS_TTL) return done(newsCache.body);
   if (!newsInFlight) {
@@ -274,7 +304,8 @@ function getNews(done) {
             newsCache.at = Date.now() - NEWS_TTL + 5 * 60 * 1000; // retry in 5 min
             return resolve();
           }
-          addHeaderImages(data).catch(() => data).then(() => {
+          Promise.all([addHeaderImages(data).catch(() => data), youtubeVideos()]).then((r) => {
+            data.videos = r[1] || [];
             newsCache = { at: Date.now(), body: Buffer.from(JSON.stringify(data)) };
             resolve();
           });
