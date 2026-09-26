@@ -37,6 +37,10 @@ jobs:
           path: |
             electron/dist/HatoLog-Setup.exe
           if-no-files-found: error
+          # Only needed long enough for the publish job below to pick it up;
+          # the permanent copy is the "latest" release. Keeping each build for
+          # the default 90 days is what fills the free 500 MB Actions storage.
+          retention-days: 1
 
   build-android:
     runs-on: ubuntu-latest
@@ -98,6 +102,10 @@ jobs:
           name: HatoLog-apk
           path: android-project/android/app/build/outputs/apk/debug/HatoLog.apk
           if-no-files-found: error
+          # Only needed long enough for the publish job below to pick it up;
+          # the permanent copy is the "latest" release. Keeping each build for
+          # the default 90 days is what fills the free 500 MB Actions storage.
+          retention-days: 1
 
   # Publishes both builds to a single rolling GitHub Release tagged "latest",
   # replacing its files every time. Unlike the per-run artifacts above (which
