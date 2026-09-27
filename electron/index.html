@@ -1115,6 +1115,23 @@
     flex-wrap:wrap; margin-bottom:16px; padding:11px 14px;
   }
   .hh-server-main{ display:flex; align-items:center; gap:9px; }
+  /* game profiles */
+  .hh-profile{ flex:1 1 100%; display:grid; gap:8px; padding-top:10px; border-top:1px solid color-mix(in srgb, var(--border) 70%, transparent); }
+  .hh-profile-row{ flex-wrap:wrap; gap:8px; }
+  .hh-profile-row select{ max-width:240px; }
+  .pf-form{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:10px; border-radius:12px;
+    background:var(--tile-bg, var(--surface-2)); border:1px solid var(--tile-edge, var(--border)); }
+  .pf-form input[type="text"]{ flex:1 1 180px; min-width:0; padding:7px 10px; border-radius:10px; border:1px solid var(--border);
+    background:var(--surface); color:var(--text); font:inherit; }
+  .pf-copy{ display:flex; align-items:center; gap:6px; font-size:0.85rem; }
+  .pf-hint{ margin:0; font-size:0.8rem; }
+  .ct-others{ margin-top:14px; display:grid; gap:8px; }
+  .ct-others-h{ font-size:0.72rem; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-muted); }
+  .ct-o-row{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; padding:9px 12px; border-radius:12px;
+    background:var(--tile-bg, var(--surface-2)); border:1px solid var(--tile-edge, var(--border)); }
+  .ct-o-row > b{ font-size:0.92rem; }
+  .ct-o-items{ flex:1 1 200px; display:flex; flex-wrap:wrap; gap:4px 12px; font-size:0.85rem; color:var(--text-muted); }
+  .ct-o-item.ready{ color:var(--good-ink, var(--good)); font-weight:700; }
   .hh-server-label{ font-size:0.74rem; font-weight:800; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-muted); }
   .hh-server-note{ font-size:0.82rem; }
 
@@ -3121,6 +3138,23 @@
         <span id="menu-viewtz-host"></span>
       </div>
       <div class="hh-server-note muted" id="menu-tz-note">&mdash;</div>
+      <div class="hh-profile" id="pf-bar">
+        <div class="hh-server-main hh-profile-row">
+          <span class="hh-server-label">Profile</span>
+          <select class="map-tz" id="pf-select" aria-label="Game profile"></select>
+          <button type="button" class="btn subtle small" id="pf-new">&#xFF0B; New</button>
+          <button type="button" class="btn subtle small" id="pf-edit">Edit</button>
+          <button type="button" class="btn subtle small" id="pf-remove" hidden>Remove</button>
+        </div>
+        <div class="pf-form" id="pf-form" hidden>
+          <input type="text" id="pf-name" maxlength="30" placeholder="Profile name, e.g. America alt" aria-label="Profile name">
+          <select class="map-tz" id="pf-server" aria-label="This profile's server"></select>
+          <label class="pf-copy" id="pf-copy-row"><input type="checkbox" id="pf-copy" checked> Copy my task list</label>
+          <button type="button" class="btn small" id="pf-save">Save</button>
+          <button type="button" class="btn subtle small" id="pf-cancel">Cancel</button>
+        </div>
+        <p class="pf-hint muted" id="pf-hint">One profile per game account. Each keeps its own server, tracker, inventory, timers and claimed codes.</p>
+      </div>
     </div>
 
     <div class="card ov-active-card" id="ov-active-card" hidden>
@@ -3914,6 +3948,7 @@
       </div>
       <div id="ct-list" class="ct-list"></div>
       <p class="empty" id="ct-empty">Nothing running yet. Tap <strong>🌱 Farm</strong> or <strong>📦 Order machine</strong> above to start one.</p>
+      <div id="ct-others" class="ct-others" hidden></div>
     </div>
   </section>
 
@@ -5720,6 +5755,63 @@
       palette: (window.HH_THEME && window.HH_THEME.palettes[app.palette]) ? app.palette : "blossom",
       mode: (["auto","light","dark"].indexOf(app.mode) !== -1) ? app.mode : "auto"
     };
+    normalizeProfiles();
+  }
+  // ---------- GAME PROFILES ----------
+  // One person, several game accounts (a SEA main and an America alt, say).
+  // The active profile's data stays exactly where it has always lived, at the
+  // top of `state`, so existing saves keep their shape and older builds still
+  // read them. The other profiles wait whole in state.profiles.data until
+  // switched to; switching swaps the two. Everyone's existing data simply
+  // becomes their first profile.
+  function profileKeys(){
+    return ["inventory","dailyTasks","dailyResetAt","weeklyTasks","weeklyResetAt","goals","mastery","timers","codesClaimed","wfFound"];
+  }
+  function serverCodes(){
+    return (typeof HH_TIME !== "undefined" && HH_TIME.servers) ? HH_TIME.servers.map(function(sv){ return sv.code; }) : ["SEA"];
+  }
+  function serverLabel(code){
+    var l = code;
+    if(typeof HH_TIME !== "undefined" && HH_TIME.servers) HH_TIME.servers.forEach(function(sv){ if(sv.code === code) l = sv.label; });
+    return l;
+  }
+  function blankProfileData(copyTasks){
+    function tasks(list, presets){
+      var labels = copyTasks ? (list || []).map(function(t){ return t && t.label; }).filter(Boolean) : presets;
+      return labels.map(function(label){ return { id:cid(), label:label, done:false }; });
+    }
+    var tm = state.timers || {};
+    return {
+      inventory:{}, goals:[], mastery: defaultMasteryCategories(),
+      dailyTasks: tasks(state.dailyTasks, PRESET_DAILY_TASKS), dailyResetAt:0,
+      weeklyTasks: tasks(state.weeklyTasks, PRESET_WEEKLY_TASKS), weeklyResetAt:0,
+      timers:{ plots:[], sound: tm.sound !== false, flash: tm.flash !== false },
+      codesClaimed:{}, wfFound:{}
+    };
+  }
+  function normalizeProfiles(){
+    var cur = (typeof HH_TIME !== "undefined" && HH_TIME.get) ? HH_TIME.get() : null;
+    var codes = serverCodes();
+    var pf = state.profiles;
+    if(!pf || typeof pf !== "object" || Array.isArray(pf)) pf = state.profiles = {};
+    if(!Array.isArray(pf.list)) pf.list = [];
+    pf.list = pf.list.filter(function(p){ return p && typeof p === "object" && typeof p.id === "string" && p.id; });
+    if(!pf.data || typeof pf.data !== "object" || Array.isArray(pf.data)) pf.data = {};
+    if(typeof pf.active !== "string" || !pf.active) pf.active = "main";
+    if(!pf.list.some(function(p){ return p.id === pf.active; })){
+      pf.list.unshift({ id: pf.active, name: cur ? cur.label : "Main", server: cur ? cur.code : codes[0] });
+    }
+    pf.list.forEach(function(p){
+      if(codes.indexOf(p.server) === -1) p.server = cur ? cur.code : codes[0];
+      if(typeof p.name !== "string" || !p.name.trim()) p.name = serverLabel(p.server);
+      if(p.id === pf.active) return;
+      var d = pf.data[p.id];
+      if(!d || typeof d !== "object"){ pf.data[p.id] = blankProfileData(false); return; }
+      var blank = blankProfileData(false);
+      profileKeys().forEach(function(k){ if(d[k] === undefined || d[k] === null) d[k] = blank[k]; });
+      if(!d.timers || typeof d.timers !== "object") d.timers = blank.timers;
+      if(!Array.isArray(d.timers.plots)) d.timers.plots = [];
+    });
   }
   var state;
   try{
@@ -5749,6 +5841,7 @@
     var box = document.getElementById("sync-box"); if(box) box.value = JSON.stringify(state);
     if(window.__hhRepaintCodes) window.__hhRepaintCodes();
     if(window.__hhRepaintWhalefall) window.__hhRepaintWhalefall();
+    onProfileChanged();
   }
 
   // ---------- APPEARANCE (color themes) ----------
@@ -9185,22 +9278,28 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     // ---- handing the schedule to the OS -----------------------------------
     function upcoming(){
       var out = [];
-      T().plots.forEach(function(p){
-        out.push({ at:p.endsAt, title:p.crop + (p.kind === "feeder" ? " is empty" : " is ready"),
+      var tag = profileTag(state.profiles && state.profiles.active);
+      function plan(p, tag){
+        out.push({ at:p.endsAt, title:p.crop + (p.kind === "feeder" ? " is empty" : " is ready") + tag,
                    body: p.kind === "order" ? "Your order machine has finished — go pick it up."
                    : p.kind === "tree" ? "It has regrown — go chop it again."
                    : p.kind === "feeder" ? "Refill it so your " + (p.pet === "cat" ? "cats" : "dogs") + " don't go hungry."
                    : "Head back to your farm and collect it." });
         if(p.weeds) p.weeds.forEach(function(t, i){
-          out.push({ at:t, title:"Weeds on your " + p.crop,
+          out.push({ at:t, title:"Weeds on your " + p.crop + tag,
                      body:"Wave " + (i+1) + " of 3 — pull them before they slow the crop." });
         });
-      });
+      }
+      T().plots.forEach(function(p){ plan(p, tag); });
+      otherProfilePlots().forEach(function(o){ o.plots.forEach(function(p){ plan(p, " (" + o.name + ")"); }); });
       return out;
     }
     var lastPlanSig = "";
     function planSig(){
       return T().plots.map(function(p){ return p.id + ":" + p.endsAt + ":" + (p.weeds ? p.weeds.length : 0); }).join("|") +
+        "~" + profileTag(state.profiles && state.profiles.active) + otherProfilePlots().map(function(o){
+          return o.name + "=" + o.plots.map(function(p){ return p.id + ":" + p.endsAt; }).join(",");
+        }).join(";") +
         "#" + (HH_NOTIFY.isGranted() ? 1 : 0) + (HH_NOTIFY.isEnabled() ? 1 : 0);
     }
     function pushSchedule(){ lastPlanSig = planSig(); HH_NOTIFY.schedule(upcoming()); }
@@ -9922,6 +10021,40 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       T().flash = !T().flash; save(); paintSettings();
     });
 
+    // ---- the other profiles, at a glance ------------------------------------
+    var othersEl = document.getElementById("ct-others"), othersHtml = "";
+    function roughLeft(ms){
+      var m = Math.max(1, Math.ceil(ms / 60000)), h = Math.floor(m / 60), d = Math.floor(h / 24);
+      if(d) return d + "d " + (h % 24) + "h";
+      if(h) return h + "h " + (m % 60) + "m";
+      return m + "m";
+    }
+    function renderOthers(now){
+      if(!othersEl) return;
+      var os = otherProfilePlots(), html = "";
+      if(os.length){
+        html = '<div class="ct-others-h">Other profiles</div>' + os.map(function(o){
+          var list = o.plots.slice().sort(function(a, b){ return a.endsAt - b.endsAt; });
+          var items = list.slice(0, 4).map(function(p){
+            var ico = p.kind === "order" ? "\ud83d\udce6" : p.kind === "tree" ? "\ud83c\udf33" : p.kind === "feeder" ? "\ud83e\uddb4" : icon(p.crop);
+            var ready = p.endsAt <= now;
+            return '<span class="ct-o-item' + (ready ? " ready" : "") + '">' + ico + " " + escapeHtml(p.crop) + " \u00b7 " +
+              (ready ? (p.kind === "feeder" ? "empty" : "ready") : roughLeft(p.endsAt - now)) + "</span>";
+          }).join("") + (list.length > 4 ? '<span class="ct-o-item">+' + (list.length - 4) + " more</span>" : "");
+          return '<div class="ct-o-row"><b>' + escapeHtml(o.name) + '</b><span class="ct-o-items">' + items +
+            '</span><button type="button" class="btn subtle small" data-pf="' + escapeHtml(o.id) + '">Switch</button></div>';
+        }).join("");
+      }
+      if(html === othersHtml) return;
+      othersHtml = html;
+      othersEl.innerHTML = html;
+      othersEl.hidden = !html;
+    }
+    if(othersEl) othersEl.addEventListener("click", function(e){
+      var b = e.target.closest && e.target.closest("button[data-pf]");
+      if(b) switchProfile(b.getAttribute("data-pf"));
+    });
+
     // ---- the tick ---------------------------------------------------------
     // Anything that came due while the tab was hidden is caught here on the next
     // tick, because completion is decided by comparing clock times rather than by
@@ -9937,18 +10070,35 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
         }
         if(!p.done && p.endsAt <= now){ p.done = true; ripe.push(p); changed = true; }
       });
-      if(weedy) announce(weedy === 1 ? "Weeds on a plot" : "Weeds on " + weedy + " plots",
+      var tagA = profileTag(state.profiles && state.profiles.active);
+      if(weedy) announce((weedy === 1 ? "Weeds on a plot" : "Weeds on " + weedy + " plots") + tagA,
                          "Pull them before they slow the crop.", false);
       if(ripe.length){
         var names = ripe.map(function(p){ return p.crop; });
         var uniq = names.filter(function(v, i){ return names.indexOf(v) === i; });
         var allOrders = ripe.every(function(p){ return p.kind === "order"; });
-        announce(ripe.length === 1 ? uniq[0] + (ripe[0].kind === "feeder" ? " is empty" : " is ready")
-                 : ripe.length + (allOrders ? " orders are ready" : " timers are ready"), uniq.join(", "), true);
+        announce((ripe.length === 1 ? uniq[0] + (ripe[0].kind === "feeder" ? " is empty" : " is ready")
+                 : ripe.length + (allOrders ? " orders are ready" : " timers are ready")) + tagA, uniq.join(", "), true);
         ripe.forEach(function(p){ if(p.replant && p.kind !== "order") collect(p, { silent:true }); });
       }
+      // The other profiles' timers keep running too: mark them and say so.
+      otherProfilePlots().forEach(function(o){
+        var r = [], w = 0;
+        o.plots.forEach(function(p){
+          if(p.weeds){
+            var due = 0;
+            p.weeds.forEach(function(t){ if(t <= now) due++; });
+            if(due > (p.weedsDone || 0)){ w++; p.weedsDone = due; changed = true; }
+          }
+          if(!p.done && p.endsAt <= now){ p.done = true; r.push(p); changed = true; }
+        });
+        if(w) announce((w === 1 ? "Weeds on a plot" : "Weeds on " + w + " plots") + " (" + o.name + ")", "Pull them before they slow the crop.", false);
+        if(r.length) announce((r.length === 1 ? r[0].crop + (r[0].kind === "feeder" ? " is empty" : " is ready") : r.length + " timers are ready") +
+          " (" + o.name + ")", r.map(function(p){ return p.crop; }).join(", "), true);
+      });
       if(changed) save();
       render();
+      renderOthers(now);
       checkReadyPops();
       // Anything that changed the set of timers without going through this
       // closure (a timer synced in from another device, mostly) still gets
@@ -11087,6 +11237,147 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     document.getElementById("sync-msg").textContent = "Tracker data erased.";
   });
 
+  // ---------- GAME PROFILES: switching & the picker ----------
+  function activeProfile(){
+    var pf = state.profiles; if(!pf) return null;
+    for(var i = 0; i < pf.list.length; i++) if(pf.list[i].id === pf.active) return pf.list[i];
+    return null;
+  }
+  // " (America alt)" on alerts once there's more than one profile.
+  function profileTag(id){
+    var pf = state.profiles; if(!pf || pf.list.length < 2) return "";
+    for(var i = 0; i < pf.list.length; i++) if(pf.list[i].id === id) return " (" + pf.list[i].name + ")";
+    return "";
+  }
+  // Timers of the profiles not on screen, so their alerts still fire.
+  function otherProfilePlots(){
+    var pf = state.profiles, out = [];
+    if(!pf) return out;
+    pf.list.forEach(function(p){
+      if(p.id === pf.active) return;
+      var d = pf.data[p.id];
+      var plots = (d && d.timers && Array.isArray(d.timers.plots)) ? d.timers.plots : [];
+      plots = plots.filter(function(x){ return x && typeof x.endsAt === "number"; });
+      if(plots.length) out.push({ id:p.id, name:p.name, plots:plots });
+    });
+    return out;
+  }
+  function switchProfile(id){
+    var pf = state.profiles;
+    if(!pf || id === pf.active || !pf.data[id]) return;
+    var target = pf.data[id], stash = {};
+    var sound = state.timers.sound, flash = state.timers.flash;
+    profileKeys().forEach(function(k){ stash[k] = state[k]; });
+    profileKeys().forEach(function(k){ if(target[k] !== undefined) state[k] = target[k]; else delete state[k]; });
+    pf.data[pf.active] = JSON.parse(JSON.stringify(stash));
+    delete pf.data[id];
+    pf.active = id;
+    normalizeState();
+    state.timers.sound = sound; state.timers.flash = flash;   // sound/flash are the person's, not the account's
+    save();
+    rerenderAll();
+  }
+  var applyingProfileServer = false;
+  function applyProfileServer(){
+    var p = activeProfile();
+    if(!p || typeof HH_TIME === "undefined" || HH_TIME.get().code === p.server) return;
+    applyingProfileServer = true;
+    try{ HH_TIME.set(p.server); }finally{ applyingProfileServer = false; }
+  }
+  function onProfileChanged(){ applyProfileServer(); paintProfiles(); }
+  // Picking a server anywhere in the app sets it for the profile in use.
+  if(typeof HH_TIME !== "undefined" && HH_TIME.onChange) HH_TIME.onChange(function(){
+    if(applyingProfileServer) return;
+    var p = activeProfile(), code = HH_TIME.get().code;
+    if(p && p.server !== code){ p.server = code; save(); paintProfiles(); }
+  });
+
+  var pfSel = document.getElementById("pf-select"), pfForm = document.getElementById("pf-form");
+  var pfName = document.getElementById("pf-name"), pfServer = document.getElementById("pf-server");
+  var pfCopyRow = document.getElementById("pf-copy-row"), pfCopy = document.getElementById("pf-copy");
+  var pfRemove = document.getElementById("pf-remove"), pfHint = document.getElementById("pf-hint");
+  var pfMode = null, pfRemoveArmed = null;
+  function paintProfiles(){
+    if(!pfSel || !state.profiles) return;
+    var pf = state.profiles;
+    pfSel.innerHTML = pf.list.map(function(p){
+      return '<option value="' + escapeHtml(p.id) + '">' + escapeHtml(p.name) +
+        // "SEA main" already says its server; "Alt" gets " · America" added.
+        (p.name.toLowerCase().indexOf(serverLabel(p.server).toLowerCase()) >= 0 ? "" : " \u00b7 " + escapeHtml(serverLabel(p.server))) + "</option>";
+    }).join("");
+    pfSel.value = pf.active;
+    if(pfRemove) pfRemove.hidden = pf.list.length < 2;
+    if(pfHint) pfHint.hidden = pf.list.length > 1;
+    disarmRemove();
+  }
+  function openForm(mode){
+    pfMode = mode;
+    var p = activeProfile(), used = state.profiles.list.map(function(x){ return x.server; });
+    if(pfServer && !pfServer.options.length){
+      HH_TIME.servers.forEach(function(sv){
+        var op = document.createElement("option"); op.value = sv.code;
+        op.textContent = sv.label + " (UTC" + (sv.utc >= 0 ? "+" : "\u2212") + Math.abs(sv.utc) + ")";
+        pfServer.appendChild(op);
+      });
+    }
+    if(mode === "new"){
+      pfName.value = "";
+      var free = serverCodes().filter(function(c){ return used.indexOf(c) === -1; })[0];
+      pfServer.value = free || (p ? p.server : serverCodes()[0]);
+      pfCopy.checked = true;
+    }else{
+      pfName.value = p ? p.name : "";
+      pfServer.value = p ? p.server : serverCodes()[0];
+    }
+    pfCopyRow.hidden = mode !== "new";
+    pfForm.hidden = false;
+    pfName.focus();
+  }
+  function closeForm(){ pfMode = null; if(pfForm) pfForm.hidden = true; }
+  function disarmRemove(){
+    if(pfRemoveArmed){ clearTimeout(pfRemoveArmed); pfRemoveArmed = null; }
+    if(pfRemove) pfRemove.textContent = "Remove";
+  }
+  if(pfSel){
+    pfSel.addEventListener("change", function(){ closeForm(); switchProfile(pfSel.value); });
+    document.getElementById("pf-new").addEventListener("click", function(){ openForm("new"); });
+    document.getElementById("pf-edit").addEventListener("click", function(){ openForm("edit"); });
+    document.getElementById("pf-cancel").addEventListener("click", closeForm);
+    pfName.addEventListener("keydown", function(e){ if(e.key === "Enter") document.getElementById("pf-save").click(); if(e.key === "Escape") closeForm(); });
+    document.getElementById("pf-save").addEventListener("click", function(){
+      var name = pfName.value.trim().slice(0, 30) || serverLabel(pfServer.value);
+      var pf = state.profiles;
+      if(pfMode === "new"){
+        var id = "p" + cid();
+        pf.list.push({ id:id, name:name, server:pfServer.value });
+        pf.data[id] = blankProfileData(pfCopy.checked);
+        closeForm();
+        switchProfile(id);
+      }else{
+        var p = activeProfile();
+        if(p){ p.name = name; p.server = pfServer.value; }
+        closeForm(); save(); onProfileChanged();
+      }
+    });
+    // Removing is the one step here that throws data away, so it takes two taps.
+    pfRemove.addEventListener("click", function(){
+      var pf = state.profiles, p = activeProfile();
+      if(!p || pf.list.length < 2) return;
+      if(!pfRemoveArmed){
+        pfRemove.textContent = "Tap again to remove \u201c" + p.name + "\u201d";
+        pfRemoveArmed = setTimeout(disarmRemove, 4000);
+        return;
+      }
+      disarmRemove();
+      var gone = p.id, next = pf.list.filter(function(x){ return x.id !== gone; })[0];
+      switchProfile(next.id);
+      delete pf.data[gone];
+      pf.list = pf.list.filter(function(x){ return x.id !== gone; });
+      save(); paintProfiles();
+    });
+  }
+  onProfileChanged();
+
   // ---------- CLOUD ACCOUNT BRIDGE ----------
   // Exposes just enough for an optional cloud-sync module (see the script block below
   // this one) to hook in without this main app ever needing to know it exists.
@@ -11319,7 +11610,10 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
           firstSnap = false;
           try{
             var local = window.__hh.getState() || {};
-            var localPlots = (local.timers && Array.isArray(local.timers.plots)) ? local.timers.plots : [];
+            // Only merge into the same game profile — never drop one account's
+            // timers into another's list.
+            var sameProfile = ((local.profiles && local.profiles.active) || "main") === ((incoming.profiles && incoming.profiles.active) || "main");
+            var localPlots = (sameProfile && local.timers && Array.isArray(local.timers.plots)) ? local.timers.plots : [];
             if(!incoming.timers || typeof incoming.timers !== "object") incoming.timers = {};
             if(!Array.isArray(incoming.timers.plots)) incoming.timers.plots = [];
             var have = {};
