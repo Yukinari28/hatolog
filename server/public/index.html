@@ -657,6 +657,7 @@
   }
   /* ---- redeem code tickets ---- */
   .cd-card{ margin-top:26px; }
+  .ev-card .jr-tape{ transform:translateX(-50%) rotate(-3.5deg); background:rgba(244,178,196,0.75); }
   .cd-card .jr-tape{ transform:translateX(-50%) rotate(2.5deg); background:rgba(158,214,196,0.75); }
   .cd-count{ font-family:"Caveat",cursive; font-size:1.2rem; color:var(--jr-soft); }
   .cd-how{ margin:4px 0 12px 34px; font-size:0.82rem; color:var(--jr-soft); line-height:1.45; }
@@ -3169,6 +3170,19 @@
       <p class="jr-sign">&mdash; noted from Heartopia's official announcements</p>
     </div>
 
+    <div class="card jr-card ev-card" id="ov-events">
+      <span class="jr-tape" aria-hidden="true"></span>
+      <div class="jr-head">
+        <div>
+          <p class="jr-kicker">happening around town</p>
+          <h2 class="jr-title">Events &amp; festivals</h2>
+        </div>
+        <button type="button" class="btn subtle small" id="ev-open-all">All events &rarr;</button>
+      </div>
+      <ol class="jr-feed" id="ev-menu"></ol>
+      <p class="jr-sign">&mdash; noted from Heartopia's official announcements</p>
+    </div>
+
     <div class="card jr-card cd-card" id="ov-codes">
       <span class="jr-tape" aria-hidden="true"></span>
       <div class="jr-head">
@@ -3416,6 +3430,10 @@
         <div><h2>Exhibitions &amp; banners</h2><p>Gilded Acorn Exhibitions, Speciality Exhibitions and Moonlight Treasure Boxes &mdash; what's live, what's ending, and what was just announced. Times follow your server.</p></div>
       </div>
       <div class="bn-grid" id="bn-full"></div>
+      <div class="section-title" id="ev-full-title" style="margin-top:22px;">
+        <div><h2>Events &amp; festivals</h2><p>Collabs, festivals and other limited-time events &mdash; separate from the banners above.</p></div>
+      </div>
+      <div class="bn-grid" id="ev-full"></div>
       <div class="section-title" style="margin-top:22px;">
         <div><h2>Latest official announcements</h2><p>Pulled automatically from Heartopia's official Steam news. New banners usually appear here first.</p></div>
       </div>
@@ -9972,7 +9990,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
   // announced banner shows up on its own and any banner without an image
   // borrows the one from its announcement post. Times are the game's server
   // time, converted per the server the person picked.
-  // type: gilded | speciality | moonlight. start/end: "YYYY-MM-DD HH:MM" server time (end null = TBA).
+  // type: gilded | speciality | moonlight | event (collabs & festivals). start/end: "YYYY-MM-DD HH:MM" server time (end null = TBA).
   var BANNERS = [
     { type:"gilded", name:"Starspell Voyager", start:"2026-09-26 07:00", end:"2026-11-28 05:59",
       img:"https://clan.fastly.steamstatic.com/images/45812445/1e34da9cd3412be301fad8592d988e428829c1e9.jpg", yt:"xX5q46Gn4xE",
@@ -9990,7 +10008,13 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       src:"https://x.com/MyHeartopia/status/2095799037735932274" },
     { type:"moonlight", name:"Pajama Jam", start:"2026-09-10 06:00", end:null, img:null, yt:"pFnJbQfS1KU",
       note:"Outfit sets Pajama Jam (Spiral Snail) and more, drawn with Moonlight Crystals.",
-      src:"https://x.com/MyHeartopia/status/2095806576770920731" }
+      src:"https://x.com/MyHeartopia/status/2095806576770920731" },
+    { type:"event", name:"Mid-Autumn Festival", start:"2026-09-25 06:00", end:"2026-10-12 05:59", img:null,
+      note:"Sea of Lanterns: launch lanterns with your messages. Under the Same Moon photo spot with friends.",
+      src:"https://www.pocketgamer.com/heartopia/starspell-voyager-madame-whitesnake-mid-autumn/" },
+    { type:"event", name:"Madame White Snake", start:"2026-09-30 06:00", end:"2026-10-26 05:59", img:null,
+      note:"New Legend of Madame White Snake collab. White Snake's Journey: complete tasks and roll dice to move around the board. Classical furniture &amp; outfits.",
+      src:"https://x.com/MyHeartopia/status/2102691945290047973" }
   ];
   var BN_TYPES = {
     gilded:     { label:"Gilded Acorn", grad:"linear-gradient(135deg,#fbe3a0,#e5a93b 60%,#b9772a)",
@@ -9998,12 +10022,17 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     speciality: { label:"Speciality", grad:"linear-gradient(135deg,#ffd1e3,#e98ab8 60%,#b25b93)",
       icon:'<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M11 18l-3 11 5-2.5 3 4 1.5-11z" fill="#c2548e"/><path d="M21 18l3 11-5-2.5-3 4-1.5-11z" fill="#a63f76"/><circle cx="16" cy="13" r="9" fill="#ff8fc0"/><circle cx="16" cy="13" r="6.2" fill="#fff0f6"/><path d="M16 8.6l1.3 2.7 3 .4-2.2 2.1.5 3-2.6-1.4-2.6 1.4.5-3-2.2-2.1 3-.4z" fill="#e0459a"/></svg>' },
     moonlight:  { label:"Moonlight Box", grad:"linear-gradient(135deg,#c9c3ff,#7b6fd6 60%,#433b8f)",
-      icon:'<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="15" width="20" height="13" rx="2.5" fill="#6b5fd0"/><rect x="4.5" y="12" width="23" height="5" rx="1.8" fill="#8b80ea"/><rect x="14.5" y="12" width="3" height="16" fill="#ffd66b"/><path d="M19 3.5a6 6 0 1 0 6.5 7.3A4.8 4.8 0 1 1 19 3.5z" fill="#ffe28a"/><circle cx="9" cy="6" r="1" fill="#fff"/><circle cx="12.5" cy="3.5" r=".7" fill="#fff"/></svg>' }
+      icon:'<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="15" width="20" height="13" rx="2.5" fill="#6b5fd0"/><rect x="4.5" y="12" width="23" height="5" rx="1.8" fill="#8b80ea"/><rect x="14.5" y="12" width="3" height="16" fill="#ffd66b"/><path d="M19 3.5a6 6 0 1 0 6.5 7.3A4.8 4.8 0 1 1 19 3.5z" fill="#ffe28a"/><circle cx="9" cy="6" r="1" fill="#fff"/><circle cx="12.5" cy="3.5" r=".7" fill="#fff"/></svg>' },
+    event:      { label:"Event", grad:"linear-gradient(135deg,#c8f0dc,#5fbf9a 60%,#2f7f6a)",
+      icon:'<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2.5v3.5" stroke="#6d4520" stroke-width="1.8" stroke-linecap="round"/><rect x="11.5" y="5.5" width="9" height="2.6" rx="1" fill="#b9772a"/><ellipse cx="16" cy="16" rx="9" ry="8.5" fill="#ef5a4c"/><path d="M16 7.6c-2.6 2.3-3.6 5.3-3.6 8.4s1 6.1 3.6 8.4M16 7.6c2.6 2.3 3.6 5.3 3.6 8.4s-1 6.1-3.6 8.4" stroke="#b8322a" stroke-width="1.2" fill="none"/><ellipse cx="13" cy="13" rx="2" ry="3" fill="#ffb3a6" opacity=".7"/><rect x="11.5" y="23.8" width="9" height="2.6" rx="1" fill="#b9772a"/><path d="M14 26.4v3M16 26.4v4M18 26.4v3" stroke="#f2c14e" stroke-width="1.4" stroke-linecap="round"/></svg>' }
   };
   (function(){
     var menuHost = document.getElementById("bn-menu");
     var fullHost = document.getElementById("bn-full");
     var newsHost = document.getElementById("bn-news");
+    var evMenuHost = document.getElementById("ev-menu");
+    var evFullHost = document.getElementById("ev-full");
+    function isEvent(b){ return b.type === "event"; }
     if(!menuHost && !fullHost) return;
     var DAY = 86400000, news = [], videos = [], newsTried = false;
 
@@ -10091,11 +10120,12 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     function newsHtml(){
       if(!news.length) return '<p class="muted">' + (newsTried ? "Announcements aren't available right now." : "Loading announcements…") + "</p>";
       var now = Date.now();
-      return news.filter(function(n){ return /exhibition|treasure box|speciality|banner|gacha/i.test(n.title); })
+      return news.filter(function(n){ return /exhibition|treasure box|speciality|banner|gacha|collab|festival/i.test(n.title); })
         .slice(0, 8).map(function(n){
           var known = BANNERS.some(function(b){ return norm(n.title).indexOf(norm(b.name)) >= 0; });
           var fresh = now - n.date < 7*DAY;
-          var T = /treasure box/i.test(n.title) ? BN_TYPES.moonlight : /speciality/i.test(n.title) ? BN_TYPES.speciality : BN_TYPES.gilded;
+          var T = /treasure box/i.test(n.title) ? BN_TYPES.moonlight : /speciality/i.test(n.title) ? BN_TYPES.speciality :
+            /collab|festival/i.test(n.title) ? BN_TYPES.event : BN_TYPES.gilded;
           return '<a href="' + n.url + '" target="_blank" rel="noopener">' +
             (n.img ? '<img src="' + n.img + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '<span class="bn-nimg">' + T.icon + "</span>") +
             "<div><b>" + escapeHtml(n.title) + (fresh && !known ? '<span class="bn-new">NEW</span>' : "") + "</b><br><span>" +
@@ -10119,7 +10149,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
           (href ? '<span class="jr-link">Open details ↗</span>' : "") +
         "</div></" + (href ? "a" : "div") + "></li>";
     }
-    function feedHtml(list, now){
+    function feedHtml(list, now, events){
       var out = list.filter(function(x){ return x.st.k !== "ended"; }).map(function(x){
         var b = x.b, st = x.st, T = BN_TYPES[b.type] || BN_TYPES.gilded, line, pct = null;
         if(st.k === "soon") line = "Opens in <b>" + dur(st.s - now) + "</b> &middot; " + dateLabel(st.s);
@@ -10131,22 +10161,28 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       });
       // Freshly announced banners the hand-kept list doesn't have yet.
       news.filter(function(n){
-        return /exhibition|treasure box|speciality/i.test(n.title) && now - n.date < 10*DAY &&
+        var ev = /collab|festival/i.test(n.title);
+        return (events ? ev : !ev && /exhibition|treasure box|speciality/i.test(n.title)) && now - n.date < 10*DAY &&
           !BANNERS.some(function(b){ return norm(n.title).indexOf(norm(b.name)) >= 0; });
       }).slice(0, 2).forEach(function(n){
-        var T = /treasure box/i.test(n.title) ? BN_TYPES.moonlight : /speciality/i.test(n.title) ? BN_TYPES.speciality : BN_TYPES.gilded;
+        var T = /treasure box/i.test(n.title) ? BN_TYPES.moonlight : /speciality/i.test(n.title) ? BN_TYPES.speciality :
+          /collab|festival/i.test(n.title) ? BN_TYPES.event : BN_TYPES.gilded;
         var title = n.title.replace(/^[^|]*\|\s*/, "").replace(/\s*(PV|Details Preview).*$/i, "").trim() || n.title;
         out.push(feedItem("news", T, title, n.img, "Announced " + dateLabel(n.date) + " &middot; dates coming soon", null, "new!", n.url));
       });
-      return out.join("") || '<li class="jr-empty">Nothing on display right now &mdash; check back soon.</li>';
+      return out.join("") || '<li class="jr-empty">' + (events ? "No events on right now" : "Nothing on display right now") + ' &mdash; check back soon.</li>';
     }
     function paint(){
       var now = Date.now(), list = order(now);
       var dl = document.getElementById("jr-date");
       if(dl){ var p = HH_TIME.parts(now), DN = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
         dl.textContent = DN[p.dow] + ", " + dateLabel(now); }
-      if(menuHost) menuHost.innerHTML = feedHtml(list, now);
-      if(fullHost) fullHost.innerHTML = list.map(function(x){ return cardHtml(x.b, now, true); }).join("");
+      var bns = list.filter(function(x){ return !isEvent(x.b); }), evs = list.filter(function(x){ return isEvent(x.b); });
+      if(menuHost) menuHost.innerHTML = feedHtml(bns, now, false);
+      if(evMenuHost) evMenuHost.innerHTML = feedHtml(evs, now, true);
+      if(fullHost) fullHost.innerHTML = bns.map(function(x){ return cardHtml(x.b, now, true); }).join("");
+      if(evFullHost) evFullHost.innerHTML = evs.map(function(x){ return cardHtml(x.b, now, true); }).join("") ||
+        '<p class="muted">No events on right now.</p>';
       if(newsHost) newsHost.innerHTML = newsHtml();
     }
     function loadNews(){
@@ -10159,6 +10195,12 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     if(openAll) openAll.addEventListener("click", function(){
       var w = document.querySelector('nav.tabs > button[data-tab="wiki"]'); if(w) w.click();
       var t = document.querySelector('button[data-target="wiki-banners"]'); if(t) t.click();
+    });
+    var evAll = document.getElementById("ev-open-all");
+    if(evAll) evAll.addEventListener("click", function(){
+      var w = document.querySelector('nav.tabs > button[data-tab="wiki"]'); if(w) w.click();
+      var t = document.querySelector('button[data-target="wiki-banners"]'); if(t) t.click();
+      var h = document.getElementById("ev-full-title"); if(h) setTimeout(function(){ h.scrollIntoView({ behavior:"smooth", block:"start" }); }, 60);
     });
     if(window.HH_TIME && HH_TIME.onChange) HH_TIME.onChange(paint);
     paint(); loadNews();
