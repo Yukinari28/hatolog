@@ -1928,6 +1928,16 @@
   .gt-lb-x{ position:absolute; top:10px; right:10px; width:32px; height:32px; border-radius:50%; border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-size:1.2rem; cursor:pointer; }
   .gt-lb-credit{ font-size:.74rem; color:var(--text-muted); margin:2px 0 0; }
   @media (max-width:700px){ .gt-pic{ width:78px; height:52px; } }
+  /* ---- GAMG membership ---- */
+  .ms-card .fd-num{ font-size:1.7rem; }
+  .ms-card.off .fd-num{ color:var(--text-muted); }
+  .ms-card.full .fd-ico{ background:color-mix(in srgb, #f2b83c 30%, var(--surface-2)); }
+  .ms-card.junior .fd-ico{ background:color-mix(in srgb, #8fb3e8 30%, var(--surface-2)); }
+  .ms-form{ display:flex; flex-wrap:wrap; align-items:end; gap:8px; }
+  .ms-form[hidden]{ display:none; }
+  .ms-form label{ display:grid; gap:3px; font-size:.78rem; font-weight:700; color:var(--text-muted); }
+  .ms-form input{ font:inherit; font-size:.92rem; color:var(--text); background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:7px 9px; width:84px; box-sizing:border-box; }
+  .ms-perk{ font-size:.8rem; color:var(--text-muted); margin:0; }
   /* ---- pet feeders ---- */
   .fd-grid{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px; }
   .fd-card{ display:grid; gap:10px; padding:14px; border-radius:16px; background:var(--tile-bg, var(--surface)); border:1.5px solid var(--tile-edge, var(--border)); box-shadow:var(--tile-shadow, none); }
@@ -1959,10 +1969,11 @@
     .fd-form{ grid-template-columns:1fr 1fr; }
     .fd-form label:nth-child(2){ grid-column:1 / -1; order:-1; }
   }
-  .tm-dock{ grid-template-columns:repeat(3, minmax(0,1fr)); }
+  .tm-dock{ grid-template-columns:repeat(4, minmax(0,1fr)); }
+  @media (max-width:900px){ .tm-dock{ grid-template-columns:repeat(3, minmax(0,1fr)); } }
   @media (max-width:700px){
     .tm-dock{ grid-template-columns:repeat(2, minmax(0,1fr)); }
-    .tm-dock > .tm-tile:last-child{ grid-column:auto; }
+    .tm-dock > .tm-tile:last-child{ grid-column:1 / -1; }
   }
 
   /* ---- phone overflow fixes: weather icons scale with their tile ---- */
@@ -3842,6 +3853,11 @@
         <span class="tm-tile-ico" aria-hidden="true">🌅</span>
         <span class="tm-tile-txt"><span class="tm-tile-title">Daily reset</span><span class="tm-tile-sub" id="tm-sub-reset">&mdash;</span></span>
       </button>
+      <button type="button" class="tm-tile" role="tab" data-pane="membership" aria-selected="false">
+        <span class="tm-tile-ico" aria-hidden="true">🌰</span>
+        <span class="tm-tile-txt"><span class="tm-tile-title">Membership</span><span class="tm-tile-sub" id="tm-sub-membership">Not active</span></span>
+        <span class="tm-tile-dot" id="tm-dot-membership" hidden></span>
+      </button>
     </div>
     <div class="tm-toast" id="tm-toast" role="status" aria-live="polite" hidden></div>
 
@@ -3941,6 +3957,13 @@
         <summary>How the estimate works</summary>
         <p>Measured in-game: 3 dogs ate 38 in 2h 50m, so each dog eats about <strong>4.5 per hour</strong>. A full 500 lasts about 4 days 16h for 1 dog, 37h for 3, 22h for 5. Cats haven&rsquo;t been measured yet, so they use the dog rate for now &mdash; change the rate on a feeder if yours drains faster or slower.</p>
       </details>
+    </div>
+
+    <div class="card tm-pane" data-pane="membership" hidden>
+      <h3 class="ct-heading">GAMG Membership</h3>
+      <p class="muted" style="margin:-4px 0 12px;font-size:0.86rem;">Bought one? Tap <strong>Just purchased</strong> &mdash; the days go on top of what's left, the same way the game stacks them. Already running? Tap <strong>Set remaining</strong> and type what the membership screen shows (e.g. <em>Remaining 9d 7h</em>). HatoLog alerts you a day before it ends.</p>
+      <div class="fd-grid" id="ms-grid"></div>
+      <p class="muted" style="margin:12px 0 0;font-size:0.8rem;">Daily rewards pile up for up to 7 days while a membership is active &mdash; claim them in game before they stop stacking.</p>
     </div>
 
     <div class="card tm-pane" data-pane="active">
@@ -5769,6 +5792,13 @@
       palette: (window.HH_THEME && window.HH_THEME.palettes[app.palette]) ? app.palette : "blossom",
       mode: (["auto","light","dark"].indexOf(app.mode) !== -1) ? app.mode : "auto"
     };
+    // GAMG memberships (per game account): when each one runs out.
+    if(!state.membership || typeof state.membership !== "object" || Array.isArray(state.membership)) state.membership = {};
+    ["junior","full"].forEach(function(k){
+      var m = state.membership[k];
+      if(!m || typeof m !== "object") m = state.membership[k] = {};
+      if(typeof m.endsAt !== "number") m.endsAt = null;
+    });
     normalizeProfiles();
   }
   // ---------- GAME PROFILES ----------
@@ -5779,7 +5809,7 @@
   // switched to; switching swaps the two. Everyone's existing data simply
   // becomes their first profile.
   function profileKeys(){
-    return ["inventory","dailyTasks","dailyResetAt","weeklyTasks","weeklyResetAt","goals","mastery","timers","codesClaimed","wfFound"];
+    return ["inventory","dailyTasks","dailyResetAt","weeklyTasks","weeklyResetAt","goals","mastery","timers","codesClaimed","wfFound","membership"];
   }
   function serverCodes(){
     return (typeof HH_TIME !== "undefined" && HH_TIME.servers) ? HH_TIME.servers.map(function(sv){ return sv.code; }) : ["SEA"];
@@ -5800,7 +5830,8 @@
       dailyTasks: tasks(state.dailyTasks, PRESET_DAILY_TASKS), dailyResetAt:0,
       weeklyTasks: tasks(state.weeklyTasks, PRESET_WEEKLY_TASKS), weeklyResetAt:0,
       timers:{ plots:[], sound: tm.sound !== false, flash: tm.flash !== false },
-      codesClaimed:{}, wfFound:{}
+      codesClaimed:{}, wfFound:{},
+      membership:{ junior:{ endsAt:null }, full:{ endsAt:null } }
     };
   }
   function normalizeProfiles(){
@@ -9306,12 +9337,14 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       }
       T().plots.forEach(function(p){ plan(p, tag); });
       otherProfilePlots().forEach(function(o){ o.plots.forEach(function(p){ plan(p, " (" + o.name + ")"); }); });
+      msPlan(state.membership, tag).forEach(function(x){ out.push(x); });
+      otherProfileMemberships().forEach(function(o){ msPlan(o.ms, " (" + o.name + ")").forEach(function(x){ out.push(x); }); });
       return out;
     }
     var lastPlanSig = "";
     function planSig(){
       return T().plots.map(function(p){ return p.id + ":" + p.endsAt + ":" + (p.weeds ? p.weeds.length : 0); }).join("|") +
-        "~" + profileTag(state.profiles && state.profiles.active) + otherProfilePlots().map(function(o){
+        "~" + msSig() + "~" + profileTag(state.profiles && state.profiles.active) + otherProfilePlots().map(function(o){
           return o.name + "=" + o.plots.map(function(p){ return p.id + ":" + p.endsAt; }).join(",");
         }).join(";") +
         "#" + (HH_NOTIFY.isGranted() ? 1 : 0) + (HH_NOTIFY.isEnabled() ? 1 : 0);
@@ -9872,7 +9905,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     (function(){
       var saved = null;
       try{ saved = localStorage.getItem("hh.timerPane"); }catch(e){}
-      var valid = ["active","farm","orders","trees","feeders","reset"];
+      var valid = ["active","farm","orders","trees","feeders","reset","membership"];
       showPane(valid.indexOf(saved) >= 0 ? saved : (T().plots.length ? "active" : "farm"));
     })();
     function toast(msg){
@@ -9939,6 +9972,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       paintTiles(plots, now);
       renderTrees(now);
       renderFeeders(now);
+      renderMembership(now);
       var readyCount = plots.filter(function(p){ return p.endsAt <= now; }).length;
       var bulkCount = plots.filter(function(p){ return p.endsAt <= now && p.kind !== "tree" && p.kind !== "feeder"; }).length;
       harvestAllBtn.hidden = bulkCount < 2;
@@ -10035,6 +10069,137 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       T().flash = !T().flash; save(); paintSettings();
     });
 
+    // ---- GAMG memberships ----------------------------------------------------
+    var MS = {
+      junior: { name:"Junior Membership", days:7,  price:"0.49 USD", ico:"🌰", perk:"Daily: 30 Moonlight Crystals · on activation: 30 Heart Diamonds" },
+      full:   { name:"Full Membership",   days:30, price:"2.99 USD", ico:"🌰", perk:"Daily: 2 Exhibition Passes + 20 Moonlight Crystals · free Town Bus · 1.1× gold from requests & selling" }
+    };
+    var DAY = 86400000;
+    function MSS(){ return state.membership; }
+    function msLeft(ms){
+      var m = Math.max(0, Math.ceil(ms / 60000)), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60);
+      if(d) return d + "d " + h + "h";
+      if(h) return h + "h " + (m % 60) + "m";
+      return (m % 60) + "m";
+    }
+    function msDate(ts){
+      var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"], p = HH_TIME.parts(ts);
+      return MON[p.mo] + " " + p.d + ", " + HH_TIME.clockOf(ts);
+    }
+    function msPlan(ms, tag){
+      var out = [];
+      if(!ms || !MS) return out;
+      Object.keys(MS).forEach(function(k){
+        var m = ms[k]; if(!m || typeof m.endsAt !== "number") return;
+        out.push({ at:m.endsAt - DAY, title:MS[k].name + " ends tomorrow" + tag, body:"Claim any piled-up daily rewards, and renew it if you want to keep them coming." });
+        out.push({ at:m.endsAt, title:MS[k].name + " has ended" + tag, body:"Your GAMG " + MS[k].name + " just ran out." });
+      });
+      return out;
+    }
+    function msSig(){
+      if(!MS) return "";
+      var one = function(ms){ return ms ? Object.keys(MS).map(function(k){ return (ms[k] && ms[k].endsAt) || 0; }).join(",") : ""; };
+      return one(state.membership) + "|" + otherProfileMemberships().map(function(o){ return o.name + "=" + one(o.ms); }).join(";");
+    }
+    // Web alerts (the packaged builds get these from the OS schedule instead).
+    function msCheck(ms, tag, now){
+      var changed = false;
+      if(!ms || !MS) return false;
+      Object.keys(MS).forEach(function(k){
+        var m = ms[k]; if(!m || typeof m.endsAt !== "number") return;
+        if(now < m.endsAt && m.endsAt - now <= DAY && m.warned !== m.endsAt){
+          m.warned = m.endsAt; changed = true;
+          announce(MS[k].name + " ends in " + msLeft(m.endsAt - now) + tag, "Claim any piled-up daily rewards, and renew it if you want to keep them coming.", false);
+        }
+        if(now >= m.endsAt && m.ended !== m.endsAt){
+          m.ended = m.endsAt; changed = true;
+          if(now - m.endsAt < 6 * 3600000) announce(MS[k].name + " has ended" + tag, "Your GAMG " + MS[k].name + " just ran out.", true);
+        }
+      });
+      return changed;
+    }
+    var msGrid = document.getElementById("ms-grid"), msCards = {};
+    function msSetEnd(k, endsAt){
+      var m = MSS()[k];
+      m.endsAt = endsAt; delete m.warned; delete m.ended;
+      save(); renderMembership(Date.now()); pushSchedule(); askAlertsOnce();
+    }
+    if(msGrid) Object.keys(MS).forEach(function(k){
+      var c = document.createElement("div");
+      c.className = "fd-card ms-card " + k;
+      c.innerHTML =
+        '<div class="fd-head"><span class="fd-ico">' + MS[k].ico + '</span><div><b>' + MS[k].name + '</b>' +
+          '<span class="muted">' + MS[k].days + ' days &middot; ' + MS[k].price + '</span></div></div>' +
+        '<div class="fd-level"><span class="fd-num" data-f="num">&mdash;</span></div>' +
+        '<div class="fd-bar"><span data-f="bar" style="width:0%"></span></div>' +
+        '<div class="fd-when" data-f="when"></div>' +
+        '<div class="fd-btns">' +
+          '<button type="button" class="btn small" data-a="buy">Just purchased (+' + MS[k].days + ' days)</button>' +
+          '<button type="button" class="btn subtle small" data-a="set">Set remaining</button>' +
+          '<button type="button" class="btn subtle small" data-a="clear" hidden>Clear</button>' +
+        '</div>' +
+        '<div class="ms-form" data-f="form" hidden>' +
+          '<label>Days<input type="number" inputmode="numeric" min="0" max="999" data-f="d"></label>' +
+          '<label>Hours<input type="number" inputmode="numeric" min="0" max="23" data-f="h"></label>' +
+          '<button type="button" class="btn small" data-a="save">Save</button>' +
+          '<button type="button" class="btn subtle small" data-a="cancel">Cancel</button>' +
+        '</div>' +
+        '<p class="ms-perk">' + MS[k].perk + '</p>';
+      msGrid.appendChild(c);
+      var q = function(n){ return c.querySelector('[data-f="' + n + '"]'); };
+      var card = msCards[k] = { el:c, num:q("num"), bar:q("bar"), when:q("when"), form:q("form"), d:q("d"), h:q("h"),
+        clear:c.querySelector('[data-a="clear"]'), armed:null };
+      c.addEventListener("click", function(e){
+        var b = e.target.closest && e.target.closest("button[data-a]"); if(!b) return;
+        var a = b.getAttribute("data-a"), now = Date.now(), m = MSS()[k];
+        if(a === "buy"){
+          // Stacks on top of what's left, or starts now if it had run out.
+          msSetEnd(k, Math.max(now, m.endsAt || 0) + MS[k].days * DAY);
+          toast("+" + MS[k].days + " days on your " + MS[k].name);
+        }else if(a === "set"){
+          var left = m.endsAt && m.endsAt > now ? m.endsAt - now : 0;
+          card.d.value = Math.floor(left / DAY); card.h.value = Math.floor((left % DAY) / 3600000);
+          card.form.hidden = false; card.d.focus(); card.d.select();
+        }else if(a === "cancel"){
+          card.form.hidden = true;
+        }else if(a === "save"){
+          var d = Math.max(0, Math.min(999, parseInt(card.d.value, 10) || 0)), h = Math.max(0, Math.min(23, parseInt(card.h.value, 10) || 0));
+          card.form.hidden = true;
+          msSetEnd(k, d || h ? now + d * DAY + h * 3600000 : null);
+        }else if(a === "clear"){
+          if(!card.armed){ b.textContent = "Tap again to clear"; card.armed = setTimeout(function(){ card.armed = null; b.textContent = "Clear"; }, 4000); return; }
+          clearTimeout(card.armed); card.armed = null; b.textContent = "Clear";
+          msSetEnd(k, null);
+        }
+      });
+      c.addEventListener("keydown", function(e){
+        if(e.target.tagName !== "INPUT") return;
+        if(e.key === "Enter") c.querySelector('[data-a="save"]').click();
+        if(e.key === "Escape") card.form.hidden = true;
+      });
+    });
+    function renderMembership(now){
+      if(!MS || !msCards) return;
+      var subs = [], hot = false, ms = MSS();
+      Object.keys(MS).forEach(function(k){
+        var m = ms[k], card = msCards[k], end = m && m.endsAt, on = end && end > now;
+        if(on){
+          subs.push((k === "full" ? "Full " : "Junior ") + msLeft(end - now));
+          if(end - now <= DAY) hot = true;
+        }
+        if(!card) return;
+        card.el.classList.toggle("off", !on);
+        card.el.classList.toggle("low", !!on && end - now <= DAY);
+        card.el.classList.toggle("empty", !!end && !on);
+        card.num.textContent = on ? msLeft(end - now) : end ? "Ended" : "Not active";
+        card.bar.style.width = on ? Math.min(100, (end - now) / (MS[k].days * DAY) * 100).toFixed(1) + "%" : "0%";
+        card.when.textContent = on ? "Ends " + msDate(end) : end ? "Ran out " + msDate(end) : "Tap Just purchased when you buy it.";
+        card.clear.hidden = !end;
+      });
+      setSub("tm-sub-membership", subs.length ? subs.join(" · ") : "Not active", hot);
+      var dot = document.getElementById("tm-dot-membership"); if(dot) dot.hidden = !hot;
+    }
+
     // ---- the other profiles, at a glance ------------------------------------
     var othersEl = document.getElementById("ct-others"), othersHtml = "";
     function roughLeft(ms){
@@ -10110,6 +10275,8 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
         if(r.length) announce((r.length === 1 ? r[0].crop + (r[0].kind === "feeder" ? " is empty" : " is ready") : r.length + " timers are ready") +
           " (" + o.name + ")", r.map(function(p){ return p.crop; }).join(", "), true);
       });
+      if(msCheck(state.membership, tagA, now)) changed = true;
+      otherProfileMemberships().forEach(function(o){ if(msCheck(o.ms, " (" + o.name + ")", now)) changed = true; });
       if(changed) save();
       render();
       renderOthers(now);
@@ -11273,6 +11440,16 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       var plots = (d && d.timers && Array.isArray(d.timers.plots)) ? d.timers.plots : [];
       plots = plots.filter(function(x){ return x && typeof x.endsAt === "number"; });
       if(plots.length) out.push({ id:p.id, name:p.name, plots:plots });
+    });
+    return out;
+  }
+  function otherProfileMemberships(){
+    var pf = state.profiles, out = [];
+    if(!pf) return out;
+    pf.list.forEach(function(p){
+      if(p.id === pf.active) return;
+      var d = pf.data[p.id];
+      if(d && d.membership && typeof d.membership === "object") out.push({ id:p.id, name:p.name, ms:d.membership });
     });
     return out;
   }
