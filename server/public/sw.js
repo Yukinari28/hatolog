@@ -6,7 +6,7 @@
 // works with no signal), and if a newer one arrived the page is told so it can
 // offer a reload rather than yanking the page out from under them mid-timer.
 
-var CACHE = "hh-app-v1";
+var CACHE = "hh-app-v2";
 var APP = "./index.html";
 
 self.addEventListener("install", function (e) {
