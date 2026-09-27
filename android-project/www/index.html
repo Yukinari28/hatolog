@@ -2034,6 +2034,102 @@
   .map-now{ width:7px; height:7px; border-radius:50%; flex:none; align-self:center; background:var(--border); }
   .map-group li.is-now .map-now{ background:#3bb37a; box-shadow:0 0 0 3px color-mix(in srgb, #3bb37a 25%, transparent); }
   @media (max-width:700px){ .map-card{ width:min(330px, 92%); } }
+
+  /* =====================================================================
+     JOURNAL PAGES EVERYWHERE — every content card is a notebook page like
+     the banner & redeem-code cards: warm paper, pink margin line, faint
+     ruling and a strip of washi tape; tables read like a handwritten ledger.
+     ===================================================================== */
+  .panel .card:not(.jr-card):not(.map-shell):not(.wf-shell):not(.beta-banner):not(.hh-server-bar){
+    position:relative; overflow:visible;
+    background-color:var(--jr-paper);
+    background-image:linear-gradient(90deg, transparent 38px, var(--jr-margin) 38px, var(--jr-margin) 40px, transparent 40px),
+                     repeating-linear-gradient(180deg, transparent 0 29px, var(--jr-line) 29px 30px);
+    background-position:0 0, 0 14px;
+    padding-left:56px;
+    margin-top:18px;
+  }
+  .panel .card:not(.jr-card):not(.map-shell):not(.wf-shell):not(.beta-banner):not(.hh-server-bar)::before{
+    content:""; position:absolute; top:-11px; left:50%; width:104px; height:22px; z-index:2; pointer-events:none;
+    transform:translateX(-50%) rotate(-2deg); background:var(--jr-tape); border-radius:3px; box-shadow:0 1px 3px rgba(0,0,0,0.08);
+    -webkit-mask:linear-gradient(90deg, transparent 0 3px, #000 3px calc(100% - 3px), transparent calc(100% - 3px));
+  }
+  .panel .card:nth-of-type(3n+2)::before{ background:rgba(158,214,196,0.75); transform:translateX(-50%) rotate(2.5deg); }
+  .panel .card:nth-of-type(3n)::before{ background:color-mix(in srgb, var(--accent) 38%, transparent); transform:translateX(-50%) rotate(-1deg); left:30%; }
+  /* scrolling tables clip anything outside them, so their tape sits on the edge */
+  .panel .card.table-wrap{ background-image:linear-gradient(90deg, transparent 38px, var(--jr-margin) 38px, var(--jr-margin) 40px, transparent 40px); }
+  /* tables must keep scrolling sideways inside their page — never spill out */
+  .panel .card.table-wrap{ overflow-x:auto !important; overflow-y:hidden !important; }
+  .panel .card.table-wrap::before{ top:0; height:14px; border-radius:0 0 3px 3px; }
+  /* a card that sits inside another card is a sticky note, not a page */
+  .panel .card .card{ padding-left:20px; background-image:none; margin-top:10px; }
+  .panel .card .card::before{ display:none; }
+  .panel .card .ct-dock{ margin-left:-56px; padding-left:56px; }
+  .panel .card > h3:first-child, .panel .card > .ct-heading:first-child{ font-family:"Baloo 2",ui-rounded,system-ui,sans-serif; }
+
+  /* ---- tables as a handwritten ledger ---- */
+  .panel table thead th{
+    background:transparent !important; border-radius:0;
+    font-family:"Caveat",cursive; font-size:1.18rem; font-weight:700; letter-spacing:0; text-transform:none;
+    color:var(--jr-soft); padding:6px 10px 4px; border-bottom:2px solid var(--jr-margin) !important;
+  }
+  .panel table tbody td{
+    border-right:none !important; border-bottom:1px solid var(--jr-line) !important;
+    background:transparent !important;
+  }
+  .panel table tbody tr:nth-child(even) td{ background:transparent !important; }
+  .panel table tbody tr:hover td{ background:color-mix(in srgb, var(--accent-soft) 45%, transparent) !important; }
+  .panel table tbody td:first-child{ font-family:"Baloo 2",ui-rounded,system-ui,sans-serif; font-weight:700; color:var(--jr-ink); }
+  .panel table tbody tr:last-child td{ border-bottom:none !important; }
+  .panel .tbl-group-row td{
+    font-family:"Caveat",cursive !important; font-size:1.2rem !important; font-weight:700 !important; letter-spacing:0 !important; text-transform:none !important;
+    color:var(--accent-ink) !important; background:transparent !important;
+    border-top:none !important; border-bottom:1.5px dashed var(--jr-margin) !important; padding-top:12px !important;
+  }
+  .panel table.recipes-table tbody tr td:first-child{ border-left-width:3px; }
+
+  /* ---- Menu stat tiles: a little tape too ---- */
+  .stat{ position:relative; overflow:visible; }
+  .stat::before{
+    content:""; position:absolute; top:-8px; left:18px; width:52px; height:16px; pointer-events:none;
+    transform:rotate(-4deg); background:var(--jr-tape); border-radius:2px; opacity:.9;
+    -webkit-mask:linear-gradient(90deg, transparent 0 2px, #000 2px calc(100% - 2px), transparent calc(100% - 2px));
+  }
+  .grid > .stat:nth-child(even)::before{ background:rgba(158,214,196,0.75); transform:rotate(3deg); left:auto; right:18px; }
+
+  @media (max-width:560px){
+    .panel .card:not(.jr-card):not(.map-shell):not(.wf-shell):not(.beta-banner):not(.hh-server-bar){
+      padding-left:16px; padding-right:16px;
+      background-image:repeating-linear-gradient(180deg, transparent 0 29px, var(--jr-line) 29px 30px);
+    }
+    .panel .card.table-wrap{ background-image:none; }
+    .panel table thead th{ font-size:1.05rem; }
+    .panel .card .ct-dock{ margin-left:-16px; margin-right:-16px; padding-left:16px; padding-right:16px; }
+  }
+
+  /* ---- phones: each table row becomes its own ledger entry, so nothing is
+     cut off or has to be scrolled sideways (labels come from the header) ---- */
+  @media (max-width:600px){
+    .panel table.stack-ok{ min-width:0 !important; width:100%; }
+    .panel table.stack-ok thead{ display:none; }
+    .panel table.stack-ok tbody tr:hover td{ background:transparent !important; }
+    .panel table.stack-ok tbody tr:active{ background:color-mix(in srgb, var(--accent-soft) 35%, transparent); }
+    .panel table.stack-ok, .panel table.stack-ok tbody{ display:block; }
+    .panel table.stack-ok tbody tr{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:4px 12px;
+      padding:10px 2px 11px; border-bottom:1px solid var(--jr-line); }
+    .panel table.stack-ok tbody tr:last-child{ border-bottom:none; }
+    .panel table.stack-ok tbody td{ display:block; padding:0 !important; border:none !important; min-width:0; overflow-wrap:anywhere; text-align:left !important; }
+    .panel table.stack-ok tbody td:first-child{ grid-column:1 / -1; font-size:1rem; }
+    .panel table.stack-ok tbody td[data-label]:not(:first-child)::before{
+      content:attr(data-label); display:block; font-family:"Caveat",cursive; font-size:1.02rem; font-weight:700; line-height:1.1; color:var(--jr-soft);
+    }
+    .panel table.stack-ok tbody td.wide{ grid-column:1 / -1; }
+    .panel table.stack-ok tbody tr.tbl-group-row, .panel table.stack-ok tbody tr:has(> td[colspan]){ display:block; }
+    .panel table.stack-ok tbody td[colspan]::before{ display:none !important; }
+    .panel .card.table-wrap:has(table.stack-ok){ overflow-x:visible !important; }
+    .panel table.recipes-table.stack-ok tbody tr td:first-child{ border-left:none !important; }
+    .panel table.recipes-table.stack-ok tbody tr{ border-left:3px solid var(--kind-line, var(--accent)); padding-left:10px; }
+  }
 </style>
 <script>
 /* Color themes. Runs before the page paints so a saved theme never flashes the
@@ -11183,5 +11279,44 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
   }).catch(function(e){
     console.warn("HatoLog: offline copy unavailable.", e);
   });
+})();
+</script>
+<script>
+// Label every table cell with its column name (for the stacked phone layout)
+// and keep doing so as tables re-render. Mastery keeps its own grid.
+(function(){
+  function label(t){
+    if(t.closest(".mastery-card") || t.classList.contains("mastery")) return;
+    var heads = t.tHead ? t.tHead.rows[t.tHead.rows.length - 1] : null;
+    if(!heads) return;
+    var names = [];
+    Array.prototype.forEach.call(heads.cells, function(th){
+      var span = th.colSpan || 1;
+      for(var i = 0; i < span; i++) names.push((th.textContent || "").trim());
+    });
+    t.classList.add("stack-ok");
+    Array.prototype.forEach.call(t.tBodies, function(tb){
+      Array.prototype.forEach.call(tb.rows, function(tr){
+        var col = 0;
+        Array.prototype.forEach.call(tr.cells, function(td){
+          var n = names[col] || "";
+          if(td.getAttribute("data-label") !== n) td.setAttribute("data-label", n);
+          if((td.textContent || "").length > 60 && col > 0) td.classList.add("wide");
+          col += td.colSpan || 1;
+        });
+      });
+    });
+  }
+  function all(){ Array.prototype.forEach.call(document.querySelectorAll(".panel table"), label); }
+  var pending = false;
+  function soon(){ if(pending) return; pending = true; requestAnimationFrame(function(){ pending = false; all(); }); }
+  all();
+  if(window.MutationObserver) new MutationObserver(function(m){
+    for(var i = 0; i < m.length; i++){
+      var t = m[i].target;
+      if(t.nodeType === 1 && (t.tagName === "TBODY" || t.tagName === "TABLE" || t.tagName === "THEAD" || t.closest && t.closest("table"))){ soon(); return; }
+      if(m[i].addedNodes && Array.prototype.some.call(m[i].addedNodes, function(n){ return n.nodeType === 1 && (n.tagName === "TABLE" || n.tagName === "TR" || (n.querySelector && n.querySelector("table"))); })){ soon(); return; }
+    }
+  }).observe(document.body, { childList:true, subtree:true });
 })();
 </script>
