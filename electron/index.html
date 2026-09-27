@@ -706,8 +706,7 @@
   /* ---- menu journal feed ---- */
   .jr-card{ position:relative; overflow:visible; color:var(--jr-ink); padding:26px 22px 16px 22px;
     background-color:var(--jr-paper);
-    background-image:linear-gradient(90deg, transparent 38px, var(--jr-margin) 38px, var(--jr-margin) 40px, transparent 40px),
-                     repeating-linear-gradient(180deg, transparent 0 29px, var(--jr-line) 29px 30px);
+    background-image:linear-gradient(90deg, transparent 38px, var(--jr-margin) 38px, var(--jr-margin) 40px, transparent 40px);
     margin-top:20px; }
   .jr-tape{ position:absolute; top:-11px; left:50%; width:110px; height:24px; transform:translateX(-50%) rotate(-2deg); background:var(--jr-tape); border-radius:3px; box-shadow:0 1px 3px rgba(0,0,0,0.08);
     -webkit-mask:linear-gradient(90deg, transparent 0 3px, #000 3px calc(100% - 3px), transparent calc(100% - 3px)); }
@@ -747,7 +746,7 @@
   .jr-empty{ font-family:"Caveat",cursive; font-size:1.3rem; color:var(--jr-soft); padding:6px 0; }
   .jr-sign{ margin:16px 0 0; text-align:right; font-family:"Caveat",cursive; font-size:1.1rem; color:var(--jr-soft); }
   @media (max-width:560px){
-    .jr-card{ padding:24px 14px 12px; background-image:repeating-linear-gradient(180deg, transparent 0 29px, var(--jr-line) 29px 30px); }
+    .jr-card{ padding:24px 14px 12px; background-image:none; }
     .jr-head{ padding-left:0; }
     .jr-feed{ padding-left:22px; gap:16px; }
     .jr-feed::before{ left:6px; }
@@ -1622,6 +1621,10 @@
     --jr-line: var(--rule); --jr-margin: var(--margin-line); --jr-tape: var(--tape);
     --jr-photo: var(--surface);
   }
+  /* Cards read as their own layer on every palette: on dark themes a lighter
+     shade of the palette's own colour, on light themes a slightly deeper one. */
+  :root[data-theme="dark"]{ --paper: var(--surface-3); }
+  :root[data-theme="light"]{ --paper: color-mix(in srgb, var(--bg) 93%, var(--text)); }
   body{ font-size:15.5px; line-height:1.5; }
   p, li{ line-height:1.55; }
   h2{ letter-spacing:0.005em; }
@@ -1636,7 +1639,7 @@
   /* faint notebook ruling on text-y cards only — never behind tables/grids */
   .panel > .card:not(.table-wrap):not(.wx-week-card):not(.jr-card):not(.beta-banner):not(.hh-server-bar):not(.tm-pane):not(.ov-active-card),
   .subpanel > .card:not(.table-wrap){
-    background-image:repeating-linear-gradient(180deg, transparent 0 29px, var(--rule) 29px 30px);
+    background-image:none;
     background-position:0 14px;
   }
   .card.table-wrap{ background-image:none; }
@@ -2044,8 +2047,7 @@
   .panel .card:not(.jr-card):not(.map-shell):not(.wf-shell):not(.beta-banner):not(.hh-server-bar){
     position:relative; overflow:visible;
     background-color:var(--jr-paper);
-    background-image:linear-gradient(90deg, transparent 38px, var(--jr-margin) 38px, var(--jr-margin) 40px, transparent 40px),
-                     repeating-linear-gradient(180deg, transparent 0 29px, var(--jr-line) 29px 30px);
+    background-image:linear-gradient(90deg, transparent 38px, var(--jr-margin) 38px, var(--jr-margin) 40px, transparent 40px);
     background-position:0 0, 0 14px;
     padding-left:56px;
     margin-top:18px;
@@ -2101,7 +2103,7 @@
   @media (max-width:560px){
     .panel .card:not(.jr-card):not(.map-shell):not(.wf-shell):not(.beta-banner):not(.hh-server-bar){
       padding-left:16px; padding-right:16px;
-      background-image:repeating-linear-gradient(180deg, transparent 0 29px, var(--jr-line) 29px 30px);
+      background-image:none;
     }
     .panel .card.table-wrap{ background-image:none; }
     .panel table thead th{ font-size:1.05rem; }
