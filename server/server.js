@@ -196,6 +196,132 @@ function findCodes(text) {
   return out;
 }
 
+// Heartopia's maintenance and event posts list every event the same way:
+//   ◆Group◆            (e.g. ◆New Events◆, ◆Town Festival: Echo of Ancients◆)
+//   \[Event name]      (the name under the event's picture)
+//   Event Duration: September 25, 6:00 AM - October 12, 5:59 AM (Server Time)
+// ("Sale Period" / "Season period" / "Fashionwave Period" for banners and
+// festivals). Reading those gives exact official start and end times for every
+// event and banner without anyone typing them in. Server-time dates are sent
+// as "YYYY-MM-DD HH:MM" (the app converts them per the player's server);
+// UTC-5 ones as epoch ms.
+const EV_MON = { jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11 };
+const EV_DATE = "([A-Za-z]{3,9})\\.?\\s+(\\d{1,2})(?:,\\s*(\\d{4}))?,?\\s+(\\d{1,2})(?::(\\d{2}))?\\s*(AM|PM)?";
+const EV_TDATE = "(\\d{1,2})(?::(\\d{2}))?\\s*(AM|PM)?,\\s*([A-Za-z]{3,9})\\.?\\s+(\\d{1,2})(?:,\\s*(\\d{4}))?";
+const EV_SEP = "\\s*(?:-|–|—|to)\\s*";
+const EV_ZONE = /\((server\s*time|UTC\s*[+-]\s*\d{1,2})\)/i;
+function evPoint(mon, day, year, hh, mm, ap, postYear, postMon) {
+  const mo = EV_MON[String(mon).slice(0, 3).toLowerCase()];
+  if (mo == null) return null;
+  let h = +hh;
+  if (ap) { ap = ap.toUpperCase(); if (ap === "PM" && h < 12) h += 12; if (ap === "AM" && h === 12) h = 0; }
+  let y = year ? +year : postYear;
+  if (!year && mo < postMon - 4) y += 1;   // a December post about January
+  return { y: y, mo: mo, d: +day, h: h, m: +(mm || 0) };
+}
+function evRange(s, postYear, postMon) {
+  const zone = s.match(EV_ZONE);
+  if (!zone) return null;
+  let a = null, b = null, m;
+  if ((m = s.match(new RegExp(EV_DATE + EV_SEP + EV_DATE, "i")))) {
+    a = evPoint(m[1], m[2], m[3], m[4], m[5], m[6], postYear, postMon);
+    b = evPoint(m[7], m[8], m[9], m[10], m[11], m[12], postYear, postMon);
+    if (a && b && !m[9] && b.mo < a.mo) b.y = a.y + 1;
+  } else if ((m = s.match(new RegExp(EV_TDATE + EV_SEP + EV_TDATE, "i")))) {   // "06:00, April 11 to 05:59, April 27"
+    a = evPoint(m[4], m[5], m[6], m[1], m[2], m[3], postYear, postMon);
+    b = evPoint(m[10], m[11], m[12], m[7], m[8], m[9], postYear, postMon);
+  }
+  if (!a || !b) return null;
+  const pad = (n) => String(n).padStart(2, "0");
+  if (/server/i.test(zone[1])) {
+    const f = (p) => p.y + "-" + pad(p.mo + 1) + "-" + pad(p.d) + " " + pad(p.h) + ":" + pad(p.m);
+    return { start: f(a), end: f(b) };
+  }
+  const off = +zone[1].replace(/[^\d+-]/g, "");
+  const f = (p) => Date.UTC(p.y, p.mo, p.d, p.h - off, p.m);
+  return { start: f(a), end: f(b) };
+}
+const EV_GENERIC = /^(?:new events?|maintenance details?|new features?|feature updates.*|optimi[sz]ations?|bug fixes|fixes|update details?|thank-you gift)$/i;
+const EV_REWARD = /^(?:gold|wishing stars?|moonlight crystals?|heart diamonds?)\b|\d\s*[x×*]\s*\d|[x×*]\s*\d/i;
+const EV_SKIP_LINE = /maintenance period|mailbox|redemption|valid (?:usage )?(?:period|until)/i;
+function evKind(name, group) {
+  const s = name + " | " + group;
+  if (/moonlight treasure box/i.test(s)) return "moonlight";
+  if (/speciality exhibition/i.test(s)) return "speciality";
+  if (/gilded acorn exhibition/i.test(name) || /^new arrivals in gilded acorn exhibition$/i.test(group)) return "gilded";
+  return "event";
+}
+function evTidy(name) {
+  return String(name).replace(/^heartopia\s*[×x✖]\s*/i, "")
+    .replace(/^(?:a new round of|this|the)\s+/i, "").replace(/\s+of this season$/i, "")
+    .replace(/^party festival$/i, "Party Festival")
+    .replace(/^(?:new\s+)?(?:speciality exhibition|moonlight treasure box|gilded acorn exhibition)\s*:\s*/i, "")
+    .replace(/\s+/g, " ").trim().slice(0, 80);
+}
+function findEvents(contents, post) {
+  const text = String(contents || "")
+    .replace(/\[\/?(?:p|br|h\d|list|olist|\*)\]/gi, "\n")
+    .replace(/\{STEAM_CLAN_IMAGE\}\S+/g, "")
+    .replace(/(^|[^\\])\[\/?[a-z0-9]+(?:[= ][^\]]*)?\]/gi, "$1");
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  const pd = new Date(post.date);
+  const out = [];
+  let group = "", sub = "", subAt = -99, note = "";
+  const push = (name, kicker, r, i) => {
+    if (!name || !r) return;
+    const kind = evKind(name, group);
+    out.push({ name: evTidy(name), kicker: kicker || "", type: kind, start: r.start, end: r.end,
+      group: group, note: note.slice(0, 200), src: post.url, posted: post.date, i: i });
+  };
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    let m;
+    if ((m = l.match(/^◆\s*([^◆]+?)\s*◆$/))) { group = m[1]; sub = ""; subAt = -99; note = ""; continue; }
+    if ((m = l.match(/^\\\[([^\]]{2,90})\]$/))) {
+      if (!EV_REWARD.test(m[1])) { sub = m[1]; subAt = i; note = ""; }
+      continue;
+    }
+    if (EV_SKIP_LINE.test(l)) continue;
+    if ((m = l.match(/^(?:event\s+)?(?:duration|season period|sale period|fashionwave period|period)\s*:\s*(.*)$/i))) {
+      let rest = m[1];
+      if (!EV_ZONE.test(rest) && lines[i + 1]) rest += " " + lines[i + 1].replace(/^for [a-z ]+:\s*/i, "");
+      const r = evRange(rest.replace(/^for [a-z ]+:\s*/i, ""), pd.getUTCFullYear(), pd.getUTCMonth());
+      let name = "", kicker = "";
+      // A collab's own banner is labelled just "New Speciality Exhibition": name it after the collab.
+      if (sub && i - subAt <= 4) name = /^new (?:speciality exhibition|moonlight treasure box)$/i.test(sub) && group ? evTidy(group) + " " + sub.replace(/^new /i, "") : sub;
+      else if (group && !EV_GENERIC.test(group)) {
+        const g = group.match(/^(town festival|fashionwave)\s*:\s*(.+)$/i);
+        name = g ? g[2] : group; kicker = g ? g[1].replace(/\b\w/g, (c) => c.toUpperCase()) : "";
+      }
+      push(name, kicker, r, i);
+      continue;
+    }
+    // Free-text forms: "A new round of Party Festival will be available from
+    // September 19, 06:00 to October 9, 05:59 (Server Time)" and "From 06:00,
+    // April 11 to 05:59, April 27 (Server Time), Heartopia will launch the
+    // limited-time event "Vernal Prayers"".
+    if ((m = l.match(/(?:new round of |the )?([A-Z][\w'’ -]{2,40}?)\s+(?:will be available|will run|runs)\s+from\s+(.+)/))) {
+      push(m[1], "", evRange(m[2], pd.getUTCFullYear(), pd.getUTCMonth()), i);
+      continue;
+    }
+    if ((m = l.match(/^from\s+(.+?),\s*heartopia will launch the limited-time event\s*["“]([^"”]+)["”]/i))) {
+      push(m[2], "", evRange(m[1], pd.getUTCFullYear(), pd.getUTCMonth()), i);
+      continue;
+    }
+    if (!note && sub && i - subAt <= 2 && l.length > 20) note = l;
+  }
+  // Activities posted under a named festival or collab with the festival's
+  // exact dates (Echo of Ancients' "Rhythm of Nature", …) fold into it.
+  const heads = out.filter((e) => e.kicker || (e.type === "event" && !EV_GENERIC.test(e.group) && e.name === evTidy(e.group)));
+  return out.filter((e) => {
+    if (heads.indexOf(e) >= 0 || e.type !== "event") return true;
+    const h = heads.find((x) => x.start === e.start && x.end === e.end);
+    if (!h) return true;
+    (h.parts = h.parts || []).push(e.name);
+    return false;
+  }).map((e) => { delete e.i; delete e.group; return e; });
+}
+
 function trimNews(json) {
   const items = ((json && json.appnews && json.appnews.newsitems) || []).map((n) => {
     const contents = String(n.contents || "");
@@ -217,7 +343,17 @@ function trimNews(json) {
       codes: findCodes(contents)
     };
   });
-  return { items: items, at: Date.now() };
+  // Every dated event from every post; when two posts name the same event the
+  // newer post wins (a later notice can move a date).
+  const seen = {}, events = [];
+  ((json && json.appnews && json.appnews.newsitems) || [])
+    .slice().sort((a, b) => (b.date || 0) - (a.date || 0))
+    .forEach((n) => findEvents(n.contents, { date: (n.date || 0) * 1000, url: String(n.url || "") }).forEach((e) => {
+      const k = e.name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      if (!k || seen[k]) return;
+      seen[k] = 1; events.push(e);
+    }));
+  return { items: items, events: events, at: Date.now() };
 }
 
 // Steam keeps an event post's header picture as the page's preview image
@@ -381,7 +517,7 @@ function getNews(done) {
   if (!newsInFlight) {
     newsInFlight = new Promise((resolve) => {
       const u = "https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid=" + STEAM_APP +
-                "&count=30&maxlength=0&format=json";
+                "&count=50&maxlength=0&format=json";
       const req = https.get(u, { timeout: 8000 }, (r) => {
         let raw = "";
         r.setEncoding("utf8");

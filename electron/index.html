@@ -9990,7 +9990,11 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
   // announced banner shows up on its own and any banner without an image
   // borrows the one from its announcement post. Times are the game's server
   // time, converted per the server the person picked.
-  // type: gilded | speciality | moonlight | event (collabs & festivals). start/end: "YYYY-MM-DD HH:MM" server time (end null = TBA).
+  // type: gilded | speciality | moonlight | event (collabs & festivals).
+  // This list is the fallback: the server reads every dated event out of the
+  // official Steam posts (/api/news → events) and those exact dates win, new
+  // ones are added on their own. aka: other official names for the same entry;
+  // parts: activities inside a festival (matched, but never move its dates). start/end: "YYYY-MM-DD HH:MM" server time (end null = TBA).
   var BANNERS = [
     { type:"gilded", name:"Starspell Voyager", start:"2026-09-26 07:00", end:"2026-11-28 05:59",
       img:"https://clan.fastly.steamstatic.com/images/45812445/1e34da9cd3412be301fad8592d988e428829c1e9.jpg", yt:"xX5q46Gn4xE",
@@ -10010,11 +10014,20 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       note:"Outfit sets Pajama Jam (Spiral Snail) and more, drawn with Moonlight Crystals.",
       src:"https://x.com/MyHeartopia/status/2095806576770920731" },
     { type:"event", name:"Mid-Autumn Festival", start:"2026-09-25 06:00", end:"2026-10-12 05:59", img:null,
-      note:"Sea of Lanterns: launch lanterns with your messages. Under the Same Moon photo spot with friends.",
-      src:"https://www.pocketgamer.com/heartopia/starspell-voyager-madame-whitesnake-mid-autumn/" },
-    { type:"event", name:"Madame White Snake", start:"2026-09-30 06:00", end:"2026-10-26 05:59", img:null,
-      note:"New Legend of Madame White Snake collab. White Snake's Journey: complete tasks and roll dice to move around the board. Classical furniture &amp; outfits.",
-      src:"https://x.com/MyHeartopia/status/2102691945290047973" }
+      parts:["Under the Same Moon", "Autumn Moon Treasury", "Sea Lanterns of Sentiment"],
+      note:"Check in at the Mid-Autumn spots, shop the limited Mid-Autumn store (Autumn Moonlight furniture), and release sea lanterns or write a blessing on a Lotus Sea Lantern.",
+      src:"https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1844751498217958" },
+    { type:"event", name:"Madame White Snake", kicker:"Collab", start:"2026-09-30 06:00", end:"2026-10-26 05:59", img:null,
+      aka:["New Legend of Madame White Snake"],
+      note:"Heartopia &times; New Legend of Madame White Snake. Free Crane &amp; Pine Oil-Paper Umbrella, Suzhen and Xu Xian outfits, furniture and pet costumes. Exchange store open until Nov 2, 5:59.",
+      src:"https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1844751498217958" },
+    { type:"event", name:"Sign in for Double Moonlight Crystals", start:"2026-09-28 06:00", end:"2026-10-12 05:59", img:null,
+      note:"Guild Sign-ins give double Moonlight Crystals.", src:"https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1844751498217958" },
+    { type:"event", name:"Party Festival", start:"2026-09-19 06:00", end:"2026-10-09 05:59", img:null,
+      note:"A new round of Party Festival: new Party Blueprints from the Party Club and other D.G. Members.", src:"https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1842846814439540" },
+    { type:"event", name:"Echo of Ancients", kicker:"Town Festival", start:"2026-08-29 06:00", end:"2026-10-10 05:59", img:null,
+      parts:["Rhythm of Nature", "Primal Pulse"],
+      note:"Town Festival season. Leftover festival tokens turn into gold 1:1 after it ends.", src:"https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1842212951296243" }
   ];
   var BN_TYPES = {
     gilded:     { label:"Gilded Acorn", grad:"linear-gradient(135deg,#fbe3a0,#e5a93b 60%,#b9772a)",
@@ -10033,10 +10046,55 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     var evMenuHost = document.getElementById("ev-menu");
     var evFullHost = document.getElementById("ev-full");
     function isEvent(b){ return b.type === "event"; }
+
+    // Official events read by the server from Heartopia's Steam posts. The last
+    // good copy is kept so the app still knows them offline.
+    var auto = [];
+    try{ auto = JSON.parse(localStorage.getItem("hh.autoEvents") || "[]") || []; }catch(e){ auto = []; }
+    function sameEvent(b, name, withParts){
+      var n = norm(name);
+      if(b.auto) return norm(b.name) === n;   // server entries only ever match exactly
+      return [b.name].concat(b.aka || [], withParts ? (b.parts || []) : []).some(function(x){
+        var k = norm(x);
+        return k === n || (k.length >= 8 && n.indexOf(k) >= 0) || (n.length >= 8 && k.indexOf(n) >= 0);
+      });
+    }
+    function allBanners(){
+      var list = BANNERS.map(function(b){ var c = {}; for(var k in b) c[k] = b[k]; return c; });
+      auto.forEach(function(e){
+        if(!e || !e.name || e.start == null || e.end == null) return;
+        var evt = e.type === "event";
+        var kin = list.filter(function(b){ return isEvent(b) === evt; });
+        var hit = kin.filter(function(b){ return sameEvent(b, e.name, false); })[0];
+        var part = hit ? null : kin.filter(function(b){ return sameEvent(b, e.name, true); })[0];
+        if(part) return;   // one activity of a festival already listed
+        if(hit){
+          hit.start = e.start; hit.end = e.end;   // official dates win over hand-typed ones
+          if(!hit.src && e.src) hit.src = e.src;
+          if(e.parts && !hit.parts) hit.parts = e.parts;
+          return;
+        }
+        list.push({ type: BN_TYPES[e.type] ? e.type : "event", name: e.name, kicker: e.kicker || "",
+          start: e.start, end: e.end, img: null, note: e.note ? escapeHtml(e.note) : "", parts: e.parts || null,
+          src: e.src || null, auto: true });
+      });
+      // Speciality Exhibitions and Moonlight Treasure Boxes run until the next
+      // one opens. When the end isn't announced but the next one is, it ends at
+      // 05:59 on the next one's opening day.
+      list.forEach(function(b){
+        if(b.end || (b.type !== "speciality" && b.type !== "moonlight")) return;
+        var s0 = serverInstant(b.start);
+        var next = list.filter(function(x){ return x.type === b.type && x !== b && serverInstant(x.start) > s0; })
+          .sort(function(x, y){ return serverInstant(x.start) - serverInstant(y.start); })[0];
+        if(next && typeof next.start === "string"){ b.end = next.start.slice(0, 10) + " 05:59"; b.endBy = next.name; }
+      });
+      return list;
+    }
     if(!menuHost && !fullHost) return;
     var DAY = 86400000, news = [], videos = [], newsTried = false;
 
     function serverInstant(s){
+      if(typeof s === "number") return s;
       if(!s) return null;
       var m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?$/.exec(s);
       if(!m) return null;
@@ -10089,14 +10147,15 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       var fb = '<div class="bn-fallback">' + T.icon + "</div>";
       return '<div class="bn-art" style="--bn-grad:' + T.grad + '">' + fb +
         (src ? '<img src="' + src + '" alt="' + escapeHtml(b.name) + ' banner" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">' : "") +
-        '<span class="bn-type">' + T.icon + T.label + "</span>";
+        '<span class="bn-type">' + T.icon + escapeHtml(b.kicker || T.label) + "</span>";
     }
     function cardHtml(b, now, full){
       var st = statusOf(b, now);
       var when;
       if(st.k === "soon") when = "Starts in <b>" + dur(st.s - now) + "</b> · " + dateLabel(st.s);
       else if(st.k === "ended") when = "Ended " + dateLabel(st.e);
-      else if(st.e) when = "Ends in <b>" + dur(st.e - now) + "</b> · " + dateLabel(st.e) + " " + HH_TIME.clockOf(st.e);
+      else if(st.e) when = "Ends in <b>" + (b.endBy ? "≈" : "") + dur(st.e - now) + "</b> · " + dateLabel(st.e) + " " + HH_TIME.clockOf(st.e) +
+        (b.endBy ? " · when " + escapeHtml(b.endBy) + " opens" : "");
       else when = "Live since " + (st.s ? dateLabel(st.s) : "—") + " · <b>end date TBA</b>";
       var pct = (st.s && st.e && st.k !== "soon") ? Math.max(0, Math.min(100, (now - st.s) / (st.e - st.s) * 100)) : null;
       var href = safeUrl(linkOf(b));
@@ -10106,12 +10165,13 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
         '<div class="bn-when' + (st.k === "ending" ? " hot" : "") + '">' + when + "</div>" +
         (pct != null ? '<div class="bn-bar"><span style="width:' + pct.toFixed(1) + '%"></span></div>' : "") +
         (full && b.note ? '<div class="bn-note">' + b.note + "</div>" : "") +
+        (full && b.parts && b.parts.length ? '<div class="bn-note">Includes: ' + b.parts.map(escapeHtml).join(", ") + "</div>" : "") +
         (full && href ? '<span class="bn-link">Official announcement ↗</span>' : "") +
         "</div>" + (href ? "</a>" : "</div>");
     }
     function order(now){
       var rank = { ending:0, live:1, soon:2, ended:3 };
-      return BANNERS.map(function(b){ return { b:b, st:statusOf(b, now) }; })
+      return allBanners().map(function(b){ return { b:b, st:statusOf(b, now) }; })
         .filter(function(x){ return x.st.k !== "ended" || now - x.st.e < 3*DAY; })   // keep just-ended ones briefly
         .sort(function(a, c){
           return rank[a.st.k] - rank[c.st.k] || ((a.st.e||9e15) - (c.st.e||9e15));
@@ -10122,7 +10182,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       var now = Date.now();
       return news.filter(function(n){ return /exhibition|treasure box|speciality|banner|gacha|collab|festival/i.test(n.title); })
         .slice(0, 8).map(function(n){
-          var known = BANNERS.some(function(b){ return norm(n.title).indexOf(norm(b.name)) >= 0; });
+          var known = allBanners().some(function(b){ return norm(n.title).indexOf(norm(b.name)) >= 0; });
           var fresh = now - n.date < 7*DAY;
           var T = /treasure box/i.test(n.title) ? BN_TYPES.moonlight : /speciality/i.test(n.title) ? BN_TYPES.speciality :
             /collab|festival/i.test(n.title) ? BN_TYPES.event : BN_TYPES.gilded;
@@ -10133,7 +10193,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
         }).join("") || '<p class="muted">No banner announcements in the latest news.</p>';
     }
     var STAMP = { ending:"ending soon!", live:"on now", soon:"coming up", ended:"closed", news:"just announced" };
-    function feedItem(k, T, title, img, line, pct, cap, href){
+    function feedItem(k, T, title, img, line, pct, cap, href, label){
       var fb = '<div class="bn-fallback">' + T.icon + "</div>";
       href = safeUrl(href);
       var tag = href ? 'a href="' + href + '" target="_blank" rel="noopener" title="Open the official announcement"' : "div";
@@ -10141,7 +10201,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
         '<div class="jr-photo"><div class="jr-pic" style="--bn-grad:' + T.grad + '">' + fb +
           (img ? '<img src="' + img + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">' : "") +
         '</div><span class="jr-cap">' + cap + "</span></div>" +
-        '<div class="jr-text"><div class="jr-meta">' + T.icon + T.label + "</div>" +
+        '<div class="jr-text"><div class="jr-meta">' + T.icon + escapeHtml(label || T.label) + "</div>" +
           '<div class="jr-name">' + escapeHtml(title) + "</div>" +
           '<div class="jr-line">' + line + "</div>" +
           (pct != null ? '<div class="jr-bar"><span style="width:' + pct.toFixed(1) + '%"></span></div>' : "") +
@@ -10153,17 +10213,18 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       var out = list.filter(function(x){ return x.st.k !== "ended"; }).map(function(x){
         var b = x.b, st = x.st, T = BN_TYPES[b.type] || BN_TYPES.gilded, line, pct = null;
         if(st.k === "soon") line = "Opens in <b>" + dur(st.s - now) + "</b> &middot; " + dateLabel(st.s);
-        else if(st.e){ line = "Closes in <b>" + dur(st.e - now) + "</b> &middot; " + dateLabel(st.e) + ", " + HH_TIME.clockOf(st.e);
+        else if(st.e){ line = "Closes in <b>" + (b.endBy ? "≈" : "") + dur(st.e - now) + "</b> &middot; " + dateLabel(st.e) + ", " + HH_TIME.clockOf(st.e) +
+            (b.endBy ? " &middot; when " + escapeHtml(b.endBy) + " opens" : "");
           pct = st.s ? Math.max(0, Math.min(100, (now - st.s) / (st.e - st.s) * 100)) : null; }
         else line = "Open since " + (st.s ? dateLabel(st.s) : "—") + " &middot; end date not announced";
         var cap = st.s ? "since " + dateLabel(st.s) : "";
-        return feedItem(st.k, T, b.name, imgOf(b), line, pct, cap, linkOf(b));
+        return feedItem(st.k, T, b.name, imgOf(b), line, pct, cap, linkOf(b), b.kicker);
       });
       // Freshly announced banners the hand-kept list doesn't have yet.
       news.filter(function(n){
         var ev = /collab|festival/i.test(n.title);
         return (events ? ev : !ev && /exhibition|treasure box|speciality/i.test(n.title)) && now - n.date < 10*DAY &&
-          !BANNERS.some(function(b){ return norm(n.title).indexOf(norm(b.name)) >= 0; });
+          !allBanners().some(function(b){ return norm(n.title).indexOf(norm(b.name)) >= 0; });
       }).slice(0, 2).forEach(function(n){
         var T = /treasure box/i.test(n.title) ? BN_TYPES.moonlight : /speciality/i.test(n.title) ? BN_TYPES.speciality :
           /collab|festival/i.test(n.title) ? BN_TYPES.event : BN_TYPES.gilded;
@@ -10188,7 +10249,14 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     function loadNews(){
       if(!/^https?:/.test(location.protocol)) { newsTried = true; paint(); return; }
       fetch("/api/news", { cache:"no-cache" }).then(function(r){ return r.ok ? r.json() : null; })
-        .then(function(d){ newsTried = true; if(d && d.items) news = d.items; if(d && d.videos) videos = d.videos; paint(); })
+        .then(function(d){
+          newsTried = true; if(d && d.items) news = d.items; if(d && d.videos) videos = d.videos;
+          if(d && Array.isArray(d.events) && d.events.length){
+            auto = d.events;
+            try{ localStorage.setItem("hh.autoEvents", JSON.stringify(auto)); }catch(e){}
+          }
+          paint();
+        })
         .catch(function(){ newsTried = true; paint(); });
     }
     var openAll = document.getElementById("bn-open-all");
