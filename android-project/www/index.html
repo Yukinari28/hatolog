@@ -703,9 +703,6 @@
   @media (max-width:560px){ .cd-how, .cd-list{ padding-left:0; margin-left:0; } .cd-list{ grid-template-columns:1fr; } }
   @media (prefers-reduced-motion: reduce){ .cd{ transition:none; } }
   /* ---- menu journal feed ---- */
-  :root{ --jr-paper:#FFFBF2; --jr-line:rgba(120,150,200,0.16); --jr-margin:rgba(229,83,120,0.28); --jr-ink:#4a3a5c; --jr-soft:#8a7a99; --jr-tape:rgba(246,196,120,0.72); --jr-photo:#fff; }
-  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --jr-paper:#2a2140; --jr-line:rgba(170,160,230,0.10); --jr-margin:rgba(255,120,170,0.22); --jr-ink:#ece6f7; --jr-soft:#b3a7c9; --jr-tape:rgba(214,160,90,0.55); --jr-photo:#3a2f55; } }
-  :root[data-theme="dark"]{ --jr-paper:#2a2140; --jr-line:rgba(170,160,230,0.10); --jr-margin:rgba(255,120,170,0.22); --jr-ink:#ece6f7; --jr-soft:#b3a7c9; --jr-tape:rgba(214,160,90,0.55); --jr-photo:#3a2f55; }
   .jr-card{ position:relative; overflow:visible; color:var(--jr-ink); padding:26px 22px 16px 22px;
     background-color:var(--jr-paper);
     background-image:linear-gradient(90deg, transparent 38px, var(--jr-margin) 38px, var(--jr-margin) 40px, transparent 40px),
@@ -1597,6 +1594,141 @@
   .m-rm-recipe:hover{ color:var(--bad-ink); }
   tfoot.mastery-total td{ background:var(--surface-3); font-weight:700; padding:12px 10px; border-top:2px solid var(--border); }
   .m-total-chip{ display:inline-flex; justify-content:space-between; gap:10px; min-width:120px; }
+
+  /* =====================================================================
+     JOURNAL LOOK — one shared style for every tab, card, tile and table.
+     Built only on the theme's own colours (so every palette, light or
+     dark, carries it), readable body text, handwriting only for small
+     accents, and hovers that lift a couple of pixels — nothing flashy.
+     ===================================================================== */
+  :root{
+    --paper: var(--surface);
+    --paper: color-mix(in srgb, var(--surface) 94%, var(--warn-soft));
+    --ink: var(--text);
+    --ink-soft: var(--text-muted);
+    --rule: rgba(128,128,160,0.10);
+    --rule: color-mix(in srgb, var(--text) 7%, transparent);
+    --margin-line: rgba(229,83,120,0.25);
+    --margin-line: color-mix(in srgb, var(--accent) 30%, transparent);
+    --tape: rgba(246,196,120,0.7);
+    --tape: color-mix(in srgb, var(--warn) 45%, transparent);
+    --lift-shadow: 0 10px 24px -14px rgba(40,30,70,0.55);
+    --btn-strong: var(--accent-strong);
+    --btn-strong: color-mix(in srgb, var(--accent-strong) 80%, #000);
+    --ease: cubic-bezier(.2,.8,.3,1);
+    /* the banner & code journal cards now follow the theme too */
+    --jr-paper: var(--paper); --jr-ink: var(--ink); --jr-soft: var(--ink-soft);
+    --jr-line: var(--rule); --jr-margin: var(--margin-line); --jr-tape: var(--tape);
+    --jr-photo: var(--surface);
+  }
+  body{ font-size:15.5px; line-height:1.5; }
+  p, li{ line-height:1.55; }
+  h2{ letter-spacing:0.005em; }
+
+  /* ---- cards: warm paper, soft edge ---- */
+  .card{
+    background-color:var(--paper);
+    border-radius:18px;
+    border-color:color-mix(in srgb, var(--border) 85%, transparent);
+    transition:box-shadow .2s var(--ease), border-color .2s var(--ease);
+  }
+  /* faint notebook ruling on text-y cards only — never behind tables/grids */
+  .panel > .card:not(.table-wrap):not(.wx-week-card):not(.jr-card):not(.beta-banner):not(.hh-server-bar):not(.tm-pane):not(.ov-active-card),
+  .subpanel > .card:not(.table-wrap){
+    background-image:repeating-linear-gradient(180deg, transparent 0 29px, var(--rule) 29px 30px);
+    background-position:0 14px;
+  }
+  .card.table-wrap{ background-image:none; }
+
+  /* ---- section headings: a hand-drawn underline swash ---- */
+  .section-title h2{ position:relative; display:inline-block; padding-bottom:4px; }
+  .section-title h2::after{
+    content:""; position:absolute; left:0; right:-6px; bottom:-2px; height:8px;
+    background:var(--accent);
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 8' preserveAspectRatio='none'%3E%3Cpath d='M2 5 C 20 1, 35 7, 55 4 S 95 1, 118 4' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E") center/100% 100% no-repeat;
+            mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 8' preserveAspectRatio='none'%3E%3Cpath d='M2 5 C 20 1, 35 7, 55 4 S 95 1, 118 4' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E") center/100% 100% no-repeat;
+    opacity:0.55;
+  }
+  .section-title p{ color:var(--ink-soft); }
+
+  /* ---- top navigation: the current tab wears a strip of washi tape ---- */
+  nav.tabs{ background:color-mix(in srgb, var(--surface-2) 80%, var(--paper)); }
+  nav.tabs button{ position:relative; transition:background .16s var(--ease), color .16s var(--ease), transform .16s var(--ease); }
+  nav.tabs button:hover{ transform:translateY(-1px); }
+  nav.tabs button[aria-selected="true"]{ background:var(--paper); }
+  nav.tabs button[aria-selected="true"]::after{
+    content:""; position:absolute; left:22%; right:22%; bottom:3px; height:3px; border-radius:3px;
+    background:var(--accent); opacity:0.7;
+  }
+
+  /* ---- section chips (Wiki / Calculators / Tracker …) ---- */
+  .subtabs button{
+    border-radius:999px; border:1.5px solid var(--border); background:var(--paper); color:var(--ink-soft);
+    transition:background .16s var(--ease), color .16s var(--ease), border-color .16s var(--ease), transform .16s var(--ease);
+  }
+  .subtabs button:hover{ transform:translateY(-1px); border-color:var(--accent); color:var(--ink); }
+  .subtabs button[aria-selected="true"]{ background:var(--accent-soft); color:var(--accent-ink); border-color:var(--accent); }
+
+  /* ---- buttons ---- */
+  .btn{ transition:transform .16s var(--ease), box-shadow .16s var(--ease), filter .16s var(--ease), background .16s var(--ease); }
+  .btn:hover:not(:disabled){ transform:translateY(-1px); box-shadow:0 6px 14px -10px rgba(40,30,70,0.6); }
+  .btn:active:not(:disabled){ transform:translateY(0) scale(0.98); box-shadow:none; }
+  .btn:focus-visible, .subtabs button:focus-visible, .cd-filters button:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  /* solid pink buttons get a deeper shade so white text stays readable */
+  .cd-copy, .hp-go, .cd-filters button[aria-pressed="true"]{ background:var(--btn-strong); }
+  .cd-filters button[aria-pressed="true"]{ border-color:var(--btn-strong); }
+
+  /* ---- stat tiles on the Menu ---- */
+  .stat{
+    background:var(--paper); border-radius:16px;
+    transition:transform .18s var(--ease), box-shadow .18s var(--ease), border-color .18s var(--ease);
+  }
+  button.stat.stat-link:hover{ transform:translateY(-2px); box-shadow:var(--lift-shadow); border-color:var(--accent); }
+  .stat .label{ background:color-mix(in srgb, var(--surface-2) 70%, transparent); color:var(--ink-soft); }
+
+  /* ---- tiles & cards that are clickable: one shared, gentle lift ---- */
+  .tm-tile, .ct-tile, .lk-card, .wx-day, .bn, .ov-active-row{
+    transition:transform .18s var(--ease), box-shadow .18s var(--ease), border-color .18s var(--ease), background .18s var(--ease);
+  }
+  .tm-tile:hover, .lk-card:hover, a.bn-click:hover{ transform:translateY(-2px); box-shadow:var(--lift-shadow); }
+  .ct-tile:hover{ transform:translateY(-2px); }
+  .tm-tile{ background:var(--paper); }
+
+  /* ---- tables: paper header, soft zebra, calm hover ---- */
+  thead th{ background:color-mix(in srgb, var(--surface-2) 75%, var(--paper)); color:var(--ink-soft); font-weight:800; }
+  tbody tr{ transition:background .14s var(--ease); }
+  tbody tr:nth-child(even) td{ background:color-mix(in srgb, var(--surface-2) 22%, transparent); }
+  tbody tr:hover{ background:transparent; }
+  tbody tr:hover td{ background:color-mix(in srgb, var(--accent-soft) 32%, transparent); }
+  tbody td:first-child{ font-weight:600; color:var(--ink); }
+
+  /* wide tables scroll sideways on phones instead of crushing their columns */
+  @media (max-width:640px){
+    .table-wrap table:has(thead th:nth-child(5)){ min-width:620px; }
+    .table-wrap{ -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
+  }
+
+  /* ---- inputs ---- */
+  input[type="text"], input[type="number"], select, textarea{ transition:border-color .16s var(--ease), box-shadow .16s var(--ease); }
+  input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus{
+    outline:none; border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+
+  /* ---- journal accents: bigger handwriting so it stays legible ---- */
+  .jr-kicker{ font-size:1.35rem; color:var(--ink-soft); }
+  .jr-cap{ font-size:1.02rem; color:var(--ink-soft); }
+  .jr-sign{ color:var(--ink-soft); }
+  .jr-stamp{ font-size:1.12rem; }
+  .jr-meta, .cd-rw, .cd-exp, .cd-date, .cd-how{ color:var(--ink-soft); }
+
+  /* ---- pills & tags a touch softer ---- */
+  .pill{ border:1px solid color-mix(in srgb, currentColor 18%, transparent); }
+
+  /* ---- motion off for people who ask for it ---- */
+  @media (prefers-reduced-motion: reduce){
+    nav.tabs button, .subtabs button, .btn, .stat, .tm-tile, .ct-tile, .lk-card, .wx-day, .bn, .ov-active-row, tbody tr, .card{ transition:none !important; }
+    nav.tabs button:hover, .subtabs button:hover, .btn:hover, button.stat.stat-link:hover, .tm-tile:hover, .lk-card:hover, a.bn-click:hover, .ct-tile:hover{ transform:none !important; }
+  }
 </style>
 <script>
 /* Color themes. Runs before the page paints so a saved theme never flashes the
@@ -2689,7 +2821,7 @@
 
     <div class="subpanel" id="wiki-materials">
       <div class="section-title">
-        <div><h2>Materials &amp; resources</h2><p>Raw and crafted materials, where to get them, and what tool you need.</p></div>
+        <div><h2>Materials &amp; resources</h2><p>Where each material spawns, what it sells for, and how fast it comes back.</p></div>
       </div>
       <div class="tbl-search-box">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="16.2" y1="16.2" x2="21" y2="21"></line></svg>
