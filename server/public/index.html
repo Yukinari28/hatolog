@@ -1116,6 +1116,14 @@
   }
   .hh-server-main{ display:flex; align-items:center; gap:9px; }
   /* game profiles */
+  .pf-toggle{ display:inline-flex; align-items:center; gap:7px; max-width:200px; padding:5px 11px; border-radius:999px; cursor:pointer;
+    border:1.5px solid var(--border); background:var(--surface); color:var(--text); font:inherit; font-size:0.85rem; font-weight:700; }
+  .pf-toggle span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pf-toggle svg{ width:11px; height:8px; flex:none; transition:transform .2s var(--ease, ease); }
+  .pf-toggle[aria-expanded="true"]{ border-color:var(--accent); }
+  .pf-toggle[aria-expanded="true"] svg{ transform:rotate(180deg); }
+  .hh-profile[hidden], .pf-form[hidden], .pf-copy[hidden], .ct-others[hidden]{ display:none; }
+  .pf-form select{ flex:0 1 auto; min-width:150px; }
   .hh-profile{ flex:1 1 100%; display:grid; gap:8px; padding-top:10px; border-top:1px solid color-mix(in srgb, var(--border) 70%, transparent); }
   .hh-profile-row{ flex-wrap:wrap; gap:8px; }
   .hh-profile-row select{ max-width:240px; }
@@ -3137,10 +3145,16 @@
         <span class="hh-server-label">Show times in</span>
         <span id="menu-viewtz-host"></span>
       </div>
+      <div class="hh-server-main">
+        <span class="hh-server-label">Profile</span>
+        <button type="button" class="pf-toggle" id="pf-toggle" aria-expanded="false" aria-controls="pf-bar">
+          <span id="pf-current">&mdash;</span><svg viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5L6 6.5L11 1.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
       <div class="hh-server-note muted" id="menu-tz-note">&mdash;</div>
-      <div class="hh-profile" id="pf-bar">
+      <div class="hh-profile" id="pf-bar" hidden>
         <div class="hh-server-main hh-profile-row">
-          <span class="hh-server-label">Profile</span>
+          <span class="hh-server-label">Switch to</span>
           <select class="map-tz" id="pf-select" aria-label="Game profile"></select>
           <button type="button" class="btn subtle small" id="pf-new">&#xFF0B; New</button>
           <button type="button" class="btn subtle small" id="pf-edit">Edit</button>
@@ -11306,6 +11320,8 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
         (p.name.toLowerCase().indexOf(serverLabel(p.server).toLowerCase()) >= 0 ? "" : " \u00b7 " + escapeHtml(serverLabel(p.server))) + "</option>";
     }).join("");
     pfSel.value = pf.active;
+    var cur = activeProfile(), curEl = document.getElementById("pf-current");
+    if(curEl && cur) curEl.textContent = cur.name;
     if(pfRemove) pfRemove.hidden = pf.list.length < 2;
     if(pfHint) pfHint.hidden = pf.list.length > 1;
     disarmRemove();
@@ -11338,6 +11354,14 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     if(pfRemoveArmed){ clearTimeout(pfRemoveArmed); pfRemoveArmed = null; }
     if(pfRemove) pfRemove.textContent = "Remove";
   }
+  var pfToggle = document.getElementById("pf-toggle"), pfBar = document.getElementById("pf-bar");
+  function setPanel(open){
+    if(!pfBar || !pfToggle) return;
+    pfBar.hidden = !open;
+    pfToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    if(!open){ closeForm(); disarmRemove(); }
+  }
+  if(pfToggle) pfToggle.addEventListener("click", function(){ setPanel(pfBar.hidden); });
   if(pfSel){
     pfSel.addEventListener("change", function(){ closeForm(); switchProfile(pfSel.value); });
     document.getElementById("pf-new").addEventListener("click", function(){ openForm("new"); });
