@@ -981,7 +981,14 @@
   .dl-dropdown-menu .muted{ font-size:0.72rem; padding:4px 10px 2px; }
   .ov-active-card{ margin-bottom:16px; }
   .ov-active-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
-  .ov-active-list{ display:grid; gap:8px; }
+  .ov-active-list{ display:grid; gap:14px; grid-template-columns:repeat(var(--ov-cols, 1), minmax(0, 1fr)); align-items:start; }
+  @media (max-width:900px){ .ov-active-list{ grid-template-columns:repeat(min(var(--ov-cols, 1), 2), minmax(0, 1fr)); } }
+  @media (max-width:600px){ .ov-active-list{ grid-template-columns:minmax(0, 1fr); } }
+  .ov-group{ display:grid; gap:8px; min-width:0; }
+  .ov-group-h{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:0 2px 4px; border:0; border-bottom:1px solid var(--border);
+    background:none; color:var(--text); font:inherit; font-size:0.8rem; font-weight:800; letter-spacing:0.04em; text-transform:uppercase; cursor:pointer; text-align:left; }
+  .ov-group-h:hover{ color:var(--accent-ink); }
+  .ov-group-n{ font-weight:700; color:var(--text-muted); text-transform:none; letter-spacing:0; }
   .ov-active-row{
     display:flex; align-items:center; gap:10px; padding:8px 10px;
     border:1px solid var(--border); border-radius:12px; background:var(--surface-2); font-size:0.88rem;
@@ -995,6 +1002,10 @@
   .ov-active-clock{ flex:none; color:var(--text-muted); font-variant-numeric:tabular-nums; }
   .ov-active-row.ready .ov-active-clock{ color:var(--accent-ink); font-weight:700; }
   .ov-active-row .ct-track{ margin-top:5px; }
+  button.ov-trees{ width:100%; box-sizing:border-box; font:inherit; color:inherit; text-align:left; cursor:pointer; }
+  button.ov-trees:hover{ border-color:var(--accent); }
+  .ov-trees .muted{ font-weight:600; }
+  .ct-trees-row{ margin-bottom:8px; }
   .ct-row{
     display:flex; align-items:center; gap:11px; padding:10px 12px;
     border:1px solid var(--border); border-radius:14px; background:var(--surface-2);
@@ -10827,9 +10838,11 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
         if(!tmFilterBox || tmFilterBox.hidden || tmShow === "all") return true;
         return tmShow === "orders" ? p.kind === "order" : tmShow === "trees" ? p.kind === "tree" : tmShow === "feeders" ? p.kind === "feeder" : !p.kind;
       });
-      listEl.innerHTML = shown.map(function(p){
-        return p.kind === "order" ? orderCardHtml(p, now) : rowHtml(p, now);
-      }).join("");
+      var groupTrees = tmShow !== "trees";
+      listEl.innerHTML = (groupTrees ? treeSummaryHtml(shown.filter(function(p){ return p.kind === "tree"; }), now, "ov-active-row ov-trees ct-trees-row") : "") +
+        shown.filter(function(p){ return !groupTrees || p.kind !== "tree"; }).map(function(p){
+          return p.kind === "order" ? orderCardHtml(p, now) : rowHtml(p, now);
+        }).join("");
       emptyEl.hidden = plots.length > 0;
       paintTiles(plots, now);
       renderTrees(now);
@@ -10858,7 +10871,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       if(!ovActiveCard || !ovActiveList) return;
       ovActiveCard.hidden = plots.length === 0;
       if(!plots.length) return;
-      ovActiveList.innerHTML = plots.map(function(p){
+      function row(p){
         var ready = p.endsAt <= now;
         var left = p.endsAt - now;
         var pct = ready ? 100 : Math.max(0, Math.min(100, (now - p.startedAt) / p.dur * 100));
@@ -10867,13 +10880,60 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
           '<div class="ov-active-main">' +
             '<div class="ov-active-top">' +
               '<span class="ov-active-name">' + escapeHtml(p.crop) + "</span>" +
-              '<span class="ov-active-clock">' + (ready ? "Ready" : fmtDur(left)) + "</span>" +
+              '<span class="ov-active-clock">' + (ready ? (p.kind === "feeder" ? "Empty" : "Ready") : fmtDur(left)) + "</span>" +
             "</div>" +
             '<div class="ct-track"><div class="ct-fill" style="width:' + pct.toFixed(1) + '%"></div></div>' +
           "</div>" +
         "</div>";
+      }
+      // One column per kind of timer, side by side and the same width.
+      var groups = [
+        { key:"farm",   ico:"\ud83c\udf31", label:"Farm",          pane:"farm",     list:plots.filter(function(p){ return !p.kind; }) },
+        { key:"orders", ico:"\ud83d\udce6", label:"Order machine", pane:"orders",   list:plots.filter(function(p){ return p.kind === "order"; }) },
+        { key:"trees",  ico:"\ud83c\udf33", label:"Giant trees",   pane:"trees",    list:plots.filter(function(p){ return p.kind === "tree"; }) },
+        { key:"feeders",ico:"\ud83e\uddb4", label:"Pet feeders",   pane:"feeders",  list:plots.filter(function(p){ return p.kind === "feeder"; }) }
+      ].filter(function(g){ return g.list.length; });
+      ovActiveList.style.setProperty("--ov-cols", Math.min(groups.length, 4));
+      ovActiveList.innerHTML = groups.map(function(g){
+        var ready = g.list.filter(function(p){ return p.endsAt <= now; }).length;
+        var body = g.key === "trees" ? treeSummaryHtml(g.list, now, "ov-active-row ov-trees")
+          : g.list.slice().sort(function(x, y){ return x.endsAt - y.endsAt; }).map(row).join("");
+        return '<section class="ov-group">' +
+          '<button type="button" class="ov-group-h" data-open-pane="' + g.pane + '">' +
+            '<span>' + g.ico + " " + g.label + "</span>" +
+            '<span class="ov-group-n">' + (ready ? ready + " ready" : g.list.length) + " \u203a</span>" +
+          "</button>" + body + "</section>";
       }).join("");
     }
+    // One line for all the giant trees instead of eight near-identical rows.
+    function treeSummaryHtml(trees, now, cls){
+      if(!trees.length) return "";
+      var ready = trees.filter(function(p){ return p.endsAt <= now; }).length;
+      var growing = trees.filter(function(p){ return p.endsAt > now; });
+      var next = growing.length ? growing.reduce(function(a, b){ return a.endsAt < b.endsAt ? a : b; }) : null;
+      var pct = next ? Math.max(0, Math.min(100, (now - next.startedAt) / next.dur * 100)) : 100;
+      var sub = (ready ? ready + " ready" : "") + (ready && growing.length ? " · " : "") + (growing.length ? growing.length + " regrowing" : "");
+      return '<button type="button" class="' + cls + (ready ? " ready" : "") + '" data-open-trees>' +
+        '<span class="ov-active-ico">\ud83c\udf33</span>' +
+        '<div class="ov-active-main">' +
+          '<div class="ov-active-top">' +
+            '<span class="ov-active-name">' + (/ct-trees-row/.test(cls) ? 'Giant trees <span class="muted">· ' + sub + "</span>" : sub) + "</span>" +
+            '<span class="ov-active-clock">' + (next ? "next " + fmtDur(next.endsAt - now) : "All ready") + " \u203a</span>" +
+          "</div>" +
+          '<div class="ct-track"><div class="ct-fill" style="width:' + pct.toFixed(1) + '%"></div></div>' +
+        "</div>" +
+      "</button>";
+    }
+    function openTrees(){
+      var tb = document.querySelector('nav.tabs > button[data-tab="timers"]'); if(tb) tb.click();
+      showPane("trees");
+    }
+    document.addEventListener("click", function(e){
+      if(!e.target.closest) return;
+      if(e.target.closest("[data-open-trees]")){ openTrees(); return; }
+      var h = e.target.closest("[data-open-pane]");
+      if(h){ var tb = document.querySelector('nav.tabs > button[data-tab="timers"]'); if(tb) tb.click(); showPane(h.getAttribute("data-open-pane")); }
+    });
     listEl.addEventListener("click", function(e){
       var btn = e.target.closest("button[data-act]");
       if(!btn) return;
