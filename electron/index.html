@@ -1930,6 +1930,12 @@
   @media (max-width:700px){ .gt-pic{ width:78px; height:52px; } }
   /* seasonal crops that can't be planted right now */
   tr.crop-off td{ opacity:.55; }
+  /* muted-sound notice */
+  .hh-muted{ position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:9999; max-width:min(92vw, 520px);
+    padding:10px 16px; border-radius:14px; font-size:0.88rem; line-height:1.4; text-align:center;
+    background:var(--surface-3, #333); color:var(--text, #fff); border:1.5px solid var(--accent); box-shadow:0 8px 24px -10px rgba(0,0,0,.5); }
+  .hh-muted[hidden]{ display:none; }
+  .set-row-btns{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
   /* ---- GAMG membership ---- */
   .ms-img{ background:none !important; }
   .ms-img img, .ms-tile-ico img{ width:100%; height:100%; object-fit:contain; display:block; }
@@ -3841,8 +3847,9 @@
       </div>
       <div class="set-row">
         <div class="set-row-text"><strong>Sound</strong>
-          <span class="muted">A short chime alongside the alert.</span></div>
-        <button type="button" class="btn subtle small" id="set-sound" aria-pressed="true">🔊 Sound</button>
+          <span class="muted">A chime alongside the alert. Your browser only lets it play after you've clicked the page once.</span></div>
+        <span class="set-row-btns"><button type="button" class="btn subtle small" id="set-sound-test" title="Play the alert sound">▶ Test</button>
+        <button type="button" class="btn subtle small" id="set-sound" aria-pressed="true">🔊 Sound</button></span>
       </div>
       <div class="set-row">
         <div class="set-row-text"><strong>Tab flash</strong>
@@ -4002,6 +4009,7 @@
         <div class="ct-alerts">
           <button type="button" class="btn subtle small" id="ct-notify">🔔 Enable alerts</button>
           <button type="button" class="btn subtle small" id="ct-sound" aria-pressed="true">🔊 Sound</button>
+          <button type="button" class="btn subtle small" id="ct-sound-test" title="Play the alert sound">▶ Test</button>
           <button type="button" class="btn subtle small" id="ct-flash" aria-pressed="true">✨ Tab flash</button>
           <button type="button" class="btn subtle small" id="ct-harvest-all" hidden>Collect all ready</button>
         </div>
@@ -10088,25 +10096,67 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     function at(ts){ return HH_TIME.whenOf(ts); }
 
     // ---- alerts -----------------------------------------------------------
-    var audioCtx = null;
+    // Browsers keep a page silent until the person has clicked or typed on it
+    // once. So the sound is unlocked on the first interaction, and from then on
+    // an alert can be heard even while HatoLog sits in a background tab.
+    var audioCtx = null, master = null;
+    function audio(){
+      if(!audioCtx){
+        try{
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          master = audioCtx.createDynamicsCompressor();   // keeps the louder chime from clipping
+          master.connect(audioCtx.destination);
+        }catch(e){ audioCtx = null; }
+      }
+      return audioCtx;
+    }
+    function soundReady(){ return !!(audioCtx && audioCtx.state === "running"); }
+    function unlockAudio(){
+      var c = audio(); if(!c) return;
+      if(c.state !== "running") c.resume().then(hideMuted, function(){});
+      else hideMuted();
+    }
+    ["pointerdown", "keydown", "touchstart"].forEach(function(ev){ document.addEventListener(ev, unlockAudio, true); });
+    // A soft bell: each note is a tone plus a quieter overtone that rings out.
+    function chime(high){
+      var c = audio(); if(!c) return;
+      if(c.state !== "running") c.resume();
+      var notes = high ? [784, 988, 1175] : [659, 880];
+      var rounds = high ? 2 : 1;
+      for(var r = 0; r < rounds; r++) notes.forEach(function(f, i){
+        var t0 = c.currentTime + 0.02 + r * 0.8 + i * 0.15;
+        [[f, 0.32, "sine"], [f * 2, 0.08, "sine"], [f * 3, 0.03, "triangle"]].forEach(function(p){
+          var o = c.createOscillator(), g = c.createGain();
+          o.type = p[2]; o.frequency.value = p[0];
+          g.gain.setValueAtTime(0.0001, t0);
+          g.gain.exponentialRampToValueAtTime(p[1], t0 + 0.012);
+          g.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.1);
+          o.connect(g); g.connect(master);
+          o.start(t0); o.stop(t0 + 1.15);
+        });
+      });
+    }
     function beep(high){
       if(!T().sound) return;
       try {
-        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-        if(audioCtx.state === "suspended") audioCtx.resume();
-        var notes = high ? [880, 1175, 1568] : [660, 880];
-        notes.forEach(function(f, i){
-          var o = audioCtx.createOscillator(), g = audioCtx.createGain();
-          o.type = "sine"; o.frequency.value = f;
-          var t0 = audioCtx.currentTime + i*0.18;
-          g.gain.setValueAtTime(0.0001, t0);
-          g.gain.exponentialRampToValueAtTime(0.16, t0 + 0.02);
-          g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.16);
-          o.connect(g); g.connect(audioCtx.destination);
-          o.start(t0); o.stop(t0 + 0.18);
-        });
+        if(!soundReady()) showMuted();
+        chime(high);
       } catch(e){ /* no audio here; the other alerts still fire */ }
     }
+    // Shown when an alert fires but the browser hasn't let the page play sound yet.
+    var mutedEl = null;
+    function showMuted(){
+      if(HH_NOTIFY.native) return;   // the Windows/Android apps aren't held back by this
+      if(!mutedEl){
+        mutedEl = document.createElement("div");
+        mutedEl.className = "hh-muted";
+        mutedEl.setAttribute("role", "status");
+        mutedEl.innerHTML = "\ud83d\udd07 Your browser muted the alert sound. <b>Click anywhere on HatoLog once</b> and alerts will play from then on.";
+        document.body.appendChild(mutedEl);
+      }
+      mutedEl.hidden = false;
+    }
+    function hideMuted(){ if(mutedEl) mutedEl.hidden = true; }
     var baseTitle = document.title, flashTimer = null;
     function flash(msg){
       if(!T().flash) return;
@@ -10126,7 +10176,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       if(!HH_NOTIFY.native && HH_NOTIFY.isEnabled()){
         try {
           if(window.Notification && Notification.permission === "granted")
-            new Notification(title, { body:body, tag:"hh-crop", renotify:true });
+            new Notification(title, { body:body, tag:"hh-crop", renotify:true, silent:false });
         } catch(e){}
       }
       beep(high !== false); flash(title);
@@ -10872,6 +10922,10 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
         return;
       }
       HH_NOTIFY.ensure().then(function(){ paintSettings(); pushSchedule(); });
+    });
+    ["ct-sound-test", "set-sound-test"].forEach(function(id){
+      var b = document.getElementById(id);
+      if(b) b.addEventListener("click", function(){ unlockAudio(); chime(true); });
     });
     soundBtn.addEventListener("click", function(){
       T().sound = !T().sound; save(); paintSettings();
