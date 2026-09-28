@@ -10272,16 +10272,14 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     }
     ["pointerdown", "keydown", "touchstart"].forEach(function(ev){ document.addEventListener(ev, unlockAudio, true); });
     // The alert is the rhythm of the word "Heartopia" on a music box:
-    // HEART-o-PI-a, long-short-long-long. A finished timer plays it twice.
+    // HEART-o-PI-a, played once.
     // Each note is a plucked tone with a bright tine on top. [note Hz, start s, ring s]
     // Timing follows how the word is sung (HEART held, o, a quick pi, a), then a little sparkle.
     var TUNE_WORD = [[784,0,1.0],[659.3,0.44,0.8],[1046.5,0.76,0.5],[880,0.88,1.4],[2093,1.34,0.5],[2637,1.43,0.8]];
     function chime(high){
       var c = audio(); if(!c) return;
       if(c.state !== "running") c.resume();
-      var tune = TUNE_WORD;
-      if(high) tune = tune.concat(TUNE_WORD.map(function(n){ return [n[0], n[1] + 2.1, n[2]]; }));
-      playTune(c, tune);
+      playTune(c, TUNE_WORD);
     }
     function playTune(c, tune){
       var base = c.currentTime + 0.03;
