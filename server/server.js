@@ -26,6 +26,7 @@ const zlib = require("zlib");
 const crypto = require("crypto");
 
 const https = require("https");
+const push = require("./push");
 
 const PORT = process.env.PORT || 3000;
 const ROOT = path.join(__dirname, "public");
@@ -546,7 +547,8 @@ function getNews(done) {
 const server = http.createServer((req, res) => {
   // Nothing here is more than a few KB or needs a body, and every real
   // request is a GET — HEAD is let through for uptime checks.
-  if (req.method !== "GET" && req.method !== "HEAD") {
+  const isPushPost = req.method === "POST" && /^\/api\/push\/(schedule|test)$/.test((req.url || "").split("?")[0]);
+  if (req.method !== "GET" && req.method !== "HEAD" && !isPushPost) {
     return send(req, res, 405, Buffer.from("Method not allowed"), "text/plain; charset=utf-8", "no-store");
   }
 
@@ -575,6 +577,27 @@ const server = http.createServer((req, res) => {
 
   if (url === "/api/codes") {
     return getDiscordCodes((body) => send(req, res, 200, body, TYPES[".json"], "public, max-age=120"));
+  }
+
+  if (url === "/api/push/key") {
+    return send(req, res, 200, Buffer.from(JSON.stringify({ key: push.publicKey })), TYPES[".json"], "no-store");
+  }
+
+  if (isPushPost) {
+    // Small JSON body only: one subscription plus at most 48 short alerts.
+    let size = 0, chunks = [];
+    req.on("data", (c) => {
+      size += c.length;
+      if (size > 32 * 1024) { req.destroy(); return; }
+      chunks.push(c);
+    });
+    req.on("end", () => {
+      let data = null;
+      try { data = JSON.parse(Buffer.concat(chunks).toString("utf8")); } catch (e) {}
+      const status = url === "/api/push/test" ? push.test(data) : push.schedule(data);
+      send(req, res, status, Buffer.from(JSON.stringify({ ok: status === 200 })), TYPES[".json"], "no-store");
+    });
+    return;
   }
 
   if (url === "/api/news") {

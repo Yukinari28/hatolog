@@ -118,3 +118,17 @@ self.addEventListener("notificationclick", function (e) {
     })
   );
 });
+
+// A timer alert pushed by HatoLog's server (website build). Shown even when
+// no HatoLog tab is awake; Windows plays its notification sound with it.
+self.addEventListener("push", function (e) {
+  var d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (x) {}
+  e.waitUntil(self.registration.showNotification(d.title || "HatoLog", {
+    body: d.body || "",
+    icon: "icon-192.png",
+    badge: "favicon-32.png",
+    tag: "hh-push-" + Date.now(),
+    silent: false
+  }));
+});
