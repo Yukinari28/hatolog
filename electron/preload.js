@@ -19,6 +19,11 @@ contextBridge.exposeInMainWorld("hhElectron", {
   scheduleAlerts: function (items) {
     ipcRenderer.send("hh-schedule-alerts", items);
   },
+  // The tray raises alerts silently and asks the page to play HatoLog's tune.
+  onPlayChime: function (callback) {
+    ipcRenderer.send("hh-chime-ready");
+    ipcRenderer.on("hh-play-chime", function () { callback(); });
+  },
   onAuthCallback: function (callback) {
     ipcRenderer.on("hh-auth-callback", function (event, data) {
       callback(data);

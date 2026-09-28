@@ -124,11 +124,18 @@ self.addEventListener("notificationclick", function (e) {
 self.addEventListener("push", function (e) {
   var d = {};
   try { d = e.data ? e.data.json() : {}; } catch (x) {}
-  e.waitUntil(self.registration.showNotification(d.title || "HatoLog", {
-    body: d.body || "",
-    icon: "icon-192.png",
-    badge: "favicon-32.png",
-    tag: "hh-push-" + Date.now(),
-    silent: false
+  var title = d.title || "HatoLog", now = Date.now();
+  // An open HatoLog tab may already have shown this same alert; don't repeat it.
+  e.waitUntil(self.registration.getNotifications().then(function (list) {
+    var dup = list.some(function (n) { return n.title === title && n.data && now - n.data.at < 90000; });
+    if (dup) return;
+    return self.registration.showNotification(title, {
+      body: d.body || "",
+      icon: "icon-192.png",
+      badge: "favicon-32.png",
+      tag: "hh-push-" + now,
+      data: { at: now },
+      silent: false
+    });
   }));
 });

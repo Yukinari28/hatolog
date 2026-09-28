@@ -86,6 +86,10 @@ function createWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      // Lets the hidden window play the alert tune without a click first, and
+      // keeps it awake enough to do so while it sits in the tray.
+      autoplayPolicy: "no-user-gesture-required",
+      backgroundThrottling: false,
       preload: path.join(__dirname, "preload.js")
     }
   });
@@ -124,6 +128,8 @@ function createWindow() {
     }
   });
   mainWindow.webContents.once("did-finish-load", deliverPendingAuthUrl);
+  // A reload waits for the page to say again that it can play the tune.
+  mainWindow.webContents.on("did-start-loading", () => { pageChime = false; });
 }
 
 // Register this app to handle "hatolog://" links. This is what lets
@@ -183,9 +189,16 @@ function clearAlerts() {
   alertTimers = [];
 }
 
+// Set once the loaded page says it can play HatoLog's tune; until then (an
+// older page) the toast keeps Windows' own sound so an alert is never silent.
+let pageChime = false;
+ipcMain.on("hh-chime-ready", () => { pageChime = true; });
+
 function showAlert(title, body) {
   if (!Notification.isSupported()) return;
-  const n = new Notification({ title, body, silent: false });
+  const tune = pageChime && mainWindow && !mainWindow.isDestroyed();
+  const n = new Notification({ title, body, silent: tune });
+  if (tune) mainWindow.webContents.send("hh-play-chime");
   // Clicking the toast brings the app back, which is the whole point of it when
   // the window has been closed to the tray.
   n.on("click", showWindow);

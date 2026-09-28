@@ -157,8 +157,14 @@ function schedule(data) {
 }
 
 // POST /api/push/test  { sub } — one alert straight away, for the settings button.
+// At most one per browser every 15 seconds, however often the button is pressed.
+const lastTest = new Map();
 function test(data) {
   if (!data || !validSub(data.sub)) return 400;
+  const now = Date.now(), prev = lastTest.get(data.sub.endpoint) || 0;
+  if (now - prev < 15000) return 429;
+  if (lastTest.size > MAX_SUBS) lastTest.clear();
+  lastTest.set(data.sub.endpoint, now);
   send(data.sub, { title: "HatoLog alerts are on", body: "Timer alerts will pop up here, even with HatoLog minimised." });
   return 200;
 }

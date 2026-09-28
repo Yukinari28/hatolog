@@ -9909,16 +9909,26 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     // so a crop/weed alert actually pops up rather than landing silently at
     // default importance, and so it consistently carries HatoLog's own heart
     // icon/colour instead of whatever channel Capacitor would otherwise infer.
-    var CHANNEL_ID = "hh-timers";
-    if(capLN && capLN.createChannel){
-      capLN.createChannel({
-        id: CHANNEL_ID,
-        name: "Crop & timer alerts",
-        description: "A crop, flower, or weed timer finishing",
-        importance: 5,
-        visibility: 1,
-        vibration: true
-      }).catch(function(){});
+    // APKs from build 2 on carry res/raw/heartopia.wav, so their channel rings
+    // with HatoLog's own tune. A channel's sound can't change once it exists,
+    // hence the new id; older APKs keep the old channel and the phone's sound.
+    var CHANNEL_ID = "hh-timers", CHANNEL_SOUND = null;
+    function makeChannel(){
+      if(!capLN || !capLN.createChannel) return Promise.resolve();
+      var ch = { id: CHANNEL_ID, name: "Crop & timer alerts", description: "A crop, flower, or weed timer finishing",
+                 importance: 5, visibility: 1, vibration: true };
+      if(CHANNEL_SOUND) ch.sound = CHANNEL_SOUND;
+      return capLN.createChannel(ch).catch(function(){});
+    }
+    var channelReady = Promise.resolve();
+    if(capLN){
+      var capApp = window.Capacitor.Plugins.App;
+      channelReady = (capApp && capApp.getInfo ? capApp.getInfo() : Promise.resolve(null)).then(function(info){
+        if(info && parseInt(info.build, 10) >= 2){
+          CHANNEL_ID = "hh-timers-tune"; CHANNEL_SOUND = "heartopia.wav";
+          if(capLN.deleteChannel) capLN.deleteChannel({ id: "hh-timers" }).catch(function(){});
+        }
+      }).catch(function(){}).then(makeChannel);
     }
 
     // Battery optimization is the other big reason a scheduled alert never
@@ -9994,8 +10004,11 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
           .then(function(r){ return r.ok; });
       }).catch(function(){ return false; });
     }
+    var lastTestPush = 0;
     function testPush(){
       if(kind !== "web" || !granted) return;
+      if(Date.now() - lastTestPush < 15000) return;
+      lastTestPush = Date.now();
       pushPost("test", {});
     }
 
@@ -10020,7 +10033,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       if(kind === "capacitor"){
         // Every reschedule replaces the previous set outright, so a collected or
         // cancelled plot can't leave a stale alert waiting in the system tray.
-        capLN.getPending().then(function(r){
+        channelReady.then(function(){ return capLN.getPending(); }).then(function(r){
           var ids = (r && r.notifications || []).map(function(n){ return { id:n.id }; });
           return ids.length ? capLN.cancel({ notifications: ids }) : null;
         }).catch(function(){}).then(function(){
@@ -10031,6 +10044,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
               title: i.title,
               body: i.body,
               channelId: CHANNEL_ID,
+              sound: CHANNEL_SOUND || undefined,
               smallIcon: "ic_stat_hatolog",
               iconColor: "#e0459a",
               schedule: { at: new Date(i.at), allowWhileIdle: true }
@@ -10276,8 +10290,13 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     // Each note is a plucked tone with a bright tine on top. [note Hz, start s, ring s]
     // Timing follows how the word is sung (HEART held, o, a quick pi, a), then a little sparkle.
     var TUNE_WORD = [[784,0,1.0],[659.3,0.44,0.8],[1046.5,0.76,0.5],[880,0.88,1.4],[2093,1.34,0.5],[2637,1.43,0.8]];
+    // One tune at a time: a second call while it's still ringing (a burst of
+    // alerts, the test button pressed over and over) is simply skipped.
+    var TUNE_LEN = 2300, chimeUntil = 0;
     function chime(high){
       var c = audio(); if(!c) return;
+      if(Date.now() < chimeUntil) return;
+      chimeUntil = Date.now() + TUNE_LEN;
       if(c.state !== "running") c.resume();
       playTune(c, TUNE_WORD);
     }
@@ -10294,6 +10313,15 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
           o.connect(g); g.connect(master);
           o.start(t0); o.stop(t0 + p[2] + 0.05);
         });
+      });
+    }
+    // The Windows app raises its own toasts from the tray; it asks this page
+    // (alive in its hidden window) to play the tune so it sounds the same.
+    if(window.hhElectron && window.hhElectron.onPlayChime){
+      window.hhElectron.onPlayChime(function(){
+        if(!T().sound) return;
+        var c = audio(); if(!c) return;
+        (c.state === "running" ? Promise.resolve() : c.resume()).then(function(){ chime(true); }, function(){});
       });
     }
     function beep(high){
@@ -10385,14 +10413,19 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       // raising a second one here would show the person the same thing twice.
       if(!HH_NOTIFY.native && HH_NOTIFY.isEnabled()){
         try {
-          if(HH_NOTIFY.pushActive()){ /* the server's push shows it, even with the tab asleep */ }
-          else if(window.Notification && Notification.permission === "granted"){
-            var opts = { body:body, tag:"hh-alert", renotify:true, silent:false, icon:"icon-192.png", badge:"favicon-32.png" };
+          if(window.Notification && Notification.permission === "granted"){
+            // The server's push may bring the same alert. Whichever lands second
+            // sees the first one still up (same title, under 90 s old) and stays quiet.
+            var now = Date.now();
+            var opts = { body:body, tag:"hh-" + now, silent:false, icon:"icon-192.png", badge:"favicon-32.png", data:{ at:now } };
             var plain = function(){ try{ new Notification(title, opts); }catch(e){} };
             if(navigator.serviceWorker && navigator.serviceWorker.getRegistration){
               navigator.serviceWorker.getRegistration().then(function(reg){
-                if(reg && reg.showNotification) return reg.showNotification(title, opts);
-                plain();
+                if(!reg || !reg.showNotification) return plain();
+                return reg.getNotifications().then(function(list){
+                  var dup = list.some(function(n){ return n.title === title && n.data && now - n.data.at < 90000; });
+                  if(!dup) return reg.showNotification(title, opts);
+                });
               }).catch(plain);
             } else plain();
           } else offerNotifications();
@@ -11201,7 +11234,12 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     })();
     ["ct-sound-test", "set-sound-test"].forEach(function(id){
       var b = document.getElementById(id);
-      if(b) b.addEventListener("click", function(){ unlockAudio(); chime(true); HH_NOTIFY.testPush(); });
+      if(b) b.addEventListener("click", function(){
+        if(b.disabled) return;
+        unlockAudio(); chime(true); HH_NOTIFY.testPush();
+        b.disabled = true;
+        setTimeout(function(){ b.disabled = false; }, TUNE_LEN);
+      });
     });
     soundBtn.addEventListener("click", function(){
       T().sound = !T().sound; save(); paintSettings();

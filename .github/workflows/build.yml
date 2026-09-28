@@ -79,6 +79,10 @@ jobs:
         working-directory: android-project
         run: node install-notification-icon.js
 
+      - name: Install HatoLog's alert tune as the notification sound
+        working-directory: android-project
+        run: node install-alert-sound.js
+
       - name: Generate app icon and splash screen
         working-directory: android-project
         run: npx @capacitor/assets generate --android
