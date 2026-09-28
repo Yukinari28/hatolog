@@ -1955,6 +1955,9 @@
     background:var(--surface-3, #333); color:var(--text, #fff); border:1.5px solid var(--accent); box-shadow:0 8px 24px -10px rgba(0,0,0,.5); }
   .hh-muted[hidden]{ display:none; }
   .set-row-btns{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+  .set-vol{ display:flex; align-items:center; gap:8px; }
+  .set-vol input{ width:150px; max-width:40vw; accent-color:var(--accent); }
+  .set-vol output{ min-width:3.2em; text-align:right; font-variant-numeric:tabular-nums; font-size:0.86rem; }
   .hh-perm{ bottom:78px; display:grid; gap:8px; justify-items:center; }
   .hh-perm-btns{ display:flex; gap:8px; }
   /* ---- GAMG membership ---- */
@@ -3871,6 +3874,12 @@
           <span class="muted">A chime alongside the alert. Your browser only lets it play after you've clicked the page once.</span></div>
         <span class="set-row-btns"><button type="button" class="btn subtle small" id="set-sound-test" title="Play the alert sound">▶ Test</button>
         <button type="button" class="btn subtle small" id="set-sound" aria-pressed="true">🔊 Sound</button></span>
+      </div>
+      <div class="set-row">
+        <div class="set-row-text"><strong>Alert volume</strong>
+          <span class="muted">How loud HatoLog's chime is. The Windows notification sound follows your Windows volume.</span></div>
+        <span class="set-vol"><input type="range" id="set-volume" min="0" max="100" step="5" value="100" aria-label="Alert volume">
+        <output id="set-volume-val" for="set-volume">100%</output></span>
       </div>
       <div class="set-row">
         <div class="set-row-text"><strong>Tab flash</strong>
@@ -10233,13 +10242,24 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     // Browsers keep a page silent until the person has clicked or typed on it
     // once. So the sound is unlocked on the first interaction, and from then on
     // an alert can be heard even while HatoLog sits in a background tab.
-    var audioCtx = null, master = null;
+    var audioCtx = null, master = null, volNode = null;
+    // Alert volume, 0-100, kept per device (speakers differ from one PC to the next).
+    var volume = 100;
+    try{ var sv = parseInt(localStorage.getItem("hh.volume"), 10); if(sv >= 0 && sv <= 100) volume = sv; }catch(e){}
+    function volGain(){ return Math.pow(volume / 100, 1.7); }   // ears hear loudness on a curve
+    function setVolume(v){
+      volume = Math.max(0, Math.min(100, Math.round(v)));
+      try{ localStorage.setItem("hh.volume", String(volume)); }catch(e){}
+      if(volNode) volNode.gain.value = volGain();
+    }
     function audio(){
       if(!audioCtx){
         try{
           audioCtx = new (window.AudioContext || window.webkitAudioContext)();
           master = audioCtx.createDynamicsCompressor();   // keeps the louder chime from clipping
-          master.connect(audioCtx.destination);
+          volNode = audioCtx.createGain();
+          volNode.gain.value = volGain();
+          master.connect(volNode); volNode.connect(audioCtx.destination);
         }catch(e){ audioCtx = null; }
       }
       return audioCtx;
@@ -11165,6 +11185,14 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       }
       HH_NOTIFY.ensure().then(function(){ paintSettings(); pushSchedule(); });
     });
+    (function(){
+      var vr = document.getElementById("set-volume"), vo = document.getElementById("set-volume-val");
+      if(!vr) return;
+      function paint(){ vr.value = volume; vo.textContent = volume + "%"; }
+      paint();
+      vr.addEventListener("input", function(){ setVolume(+vr.value); vo.textContent = volume + "%"; });
+      vr.addEventListener("change", function(){ unlockAudio(); if(volume > 0) chime(false); });
+    })();
     ["ct-sound-test", "set-sound-test"].forEach(function(id){
       var b = document.getElementById(id);
       if(b) b.addEventListener("click", function(){ unlockAudio(); chime(true); HH_NOTIFY.testPush(); });
