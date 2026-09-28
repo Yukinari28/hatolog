@@ -3980,8 +3980,8 @@
         </label>
         <label class="om-field">Time
           <span class="ct-custom-row" style="margin:0;">
-            <input type="number" id="om-hours" min="0" max="240" step="1" value="1" aria-label="Hours"> <span class="muted">h</span>
-            <input type="number" id="om-mins" min="0" max="59" step="1" value="0" aria-label="Minutes"> <span class="muted">m</span>
+            <input type="number" id="om-days" min="0" max="30" step="1" value="1" aria-label="Days"> <span class="muted">d</span>
+            <input type="number" id="om-hours" min="0" max="23" step="1" value="0" aria-label="Hours"> <span class="muted">h</span>
           </span>
         </label>
         <button type="button" class="btn" id="om-add">Start order</button>
@@ -10498,7 +10498,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       var omAdd = document.getElementById("om-add");
       if(!omAdd) return;
       var omName = document.getElementById("om-name");
-      var omH = document.getElementById("om-hours"), omM = document.getElementById("om-mins");
+      var omD = document.getElementById("om-days"), omH = document.getElementById("om-hours");
       var omStatus = document.getElementById("om-status");
       var catBtns = document.querySelectorAll("#om-cats > button");
       var omCat = "furniture";
@@ -10510,10 +10510,10 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
         });
       });
       omAdd.addEventListener("click", function(){
-        var hrs = Math.max(0, parseInt(omH.value, 10) || 0);
-        var mins = Math.max(0, Math.min(59, parseInt(omM.value, 10) || 0));
-        var d = (hrs * 60 + mins) * 60000;
-        if(d <= 0){ omStatus.textContent = "Set a time longer than 0 minutes."; return; }
+        var days = Math.max(0, parseInt(omD.value, 10) || 0);
+        var hrs = Math.max(0, Math.min(23, parseInt(omH.value, 10) || 0));
+        var d = (days * 24 + hrs) * 3600000;
+        if(d <= 0){ omStatus.textContent = "Set a time longer than 0 hours."; return; }
         var name = (omName.value || "").trim().slice(0, 60) || DEFAULT_NAME[omCat];
         var now = Date.now();
         T().plots.push({
