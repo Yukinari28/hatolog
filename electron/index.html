@@ -10271,36 +10271,16 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       else hideMuted();
     }
     ["pointerdown", "keydown", "touchstart"].forEach(function(ev){ document.addEventListener(ev, unlockAudio, true); });
-    // The alert says "Heartopia" in a bright voice (the browser's own speech),
-    // then a music-box echo of the word's four syllables: HEART-o-PI-a.
+    // The alert is the rhythm of the word "Heartopia" on a music box:
+    // HEART-o-PI-a, long-short-long-long. A finished timer plays it twice.
     // Each note is a plucked tone with a bright tine on top. [note Hz, start s, ring s]
     var TUNE_WORD = [[784,0,0.9],[659.3,0.2,0.7],[1046.5,0.36,0.9],[880,0.56,1.5]];
-    var voicePick = null;
-    function heartopiaVoice(){
-      if(voicePick) return voicePick;
-      var vs = (window.speechSynthesis && speechSynthesis.getVoices()) || [];
-      var en = vs.filter(function(v){ return /^en/i.test(v.lang); });
-      var like = /aria|jenny|zira|samantha|female|google us english|libby|sonia/i;
-      voicePick = en.filter(function(v){ return like.test(v.name); })[0] || en[0] || null;
-      return voicePick;
-    }
-    if(window.speechSynthesis && speechSynthesis.addEventListener) speechSynthesis.addEventListener("voiceschanged", function(){ voicePick = null; });
-    function sayHeartopia(then){
-      if(!window.speechSynthesis || !window.SpeechSynthesisUtterance){ then(); return; }
-      var done = false, go = function(){ if(!done){ done = true; then(); } };
-      try{
-        var u = new SpeechSynthesisUtterance("Heartopia!");
-        u.lang = "en-US"; u.pitch = 1.35; u.rate = 0.92; u.volume = Math.max(0, Math.min(1, volume / 100));
-        var v = heartopiaVoice(); if(v) u.voice = v;
-        u.onend = go; u.onerror = go;
-        speechSynthesis.cancel(); speechSynthesis.speak(u);
-        setTimeout(go, 2500);   // some browsers never report the end
-      }catch(e){ go(); }
-    }
     function chime(high){
       var c = audio(); if(!c) return;
       if(c.state !== "running") c.resume();
-      sayHeartopia(function(){ if(high) playTune(c, TUNE_WORD); });
+      var tune = TUNE_WORD;
+      if(high) tune = tune.concat(TUNE_WORD.map(function(n){ return [n[0], n[1] + 1.1, n[2]]; }));
+      playTune(c, tune);
     }
     function playTune(c, tune){
       var base = c.currentTime + 0.03;
