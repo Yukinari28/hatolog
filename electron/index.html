@@ -1612,6 +1612,9 @@
   .m-check{ width:17px; height:17px; accent-color:var(--accent); }
   .m-name-input{ font-weight:700; border:1px solid transparent; background:transparent; padding:6px 7px; border-radius:8px; width:100%; box-sizing:border-box; }
   .m-name-input:hover, .m-name-input:focus{ border-color:var(--border); background:var(--surface); }
+  .ct-water{ margin-top:10px; }
+  .ct-water input[type="time"]{ font:inherit; font-size:0.85rem; padding:2px 6px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); }
+  .ct-water-note{ margin:4px 0 0 28px; font-size:0.8rem; }
   .m-num{ width:100%; box-sizing:border-box; text-align:right; padding:6px 6px; }
   .m-steps{ display:flex; flex-direction:column; gap:2px; margin-top:4px; }
   .m-step{ border:1px solid var(--border); background:var(--surface-2); color:var(--text-muted); border-radius:6px;
@@ -4003,6 +4006,15 @@
             <input type="checkbox" id="ct-weeds">
             <span class="ct-opt-text">🌱 <strong>Weed timer</strong> <span class="muted">&mdash; 3 weed waves at ⅓, ⅔, and just before harvest</span></span>
           </label>
+        </div>
+
+        <div class="ct-water">
+          <label class="ct-opt">
+            <input type="checkbox" id="ct-water-on">
+            <span class="ct-opt-text">💧 <strong>Flower watering reminder</strong> <span class="muted">&mdash; a ping every day at
+              <input type="time" id="ct-water-at" value="17:00" aria-label="Reminder time"> while any flower is still growing</span></span>
+          </label>
+          <p class="muted ct-water-note">Watered before its next growth stage, a flower is ready sooner &mdash; a Daisy can finish in 12h instead of 18h. Pick a time you're usually online.</p>
         </div>
 
         <div class="ct-start">
@@ -10632,12 +10644,71 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       T().plots.forEach(function(p){ plan(p, tag); });
       otherProfilePlots().forEach(function(o){ o.plots.forEach(function(p){ plan(p, " (" + o.name + ")"); }); });
       msPlan(state.membership, tag).forEach(function(x){ out.push(x); });
+      waterPlan().forEach(function(x){ out.push(x); });
       otherProfileMemberships().forEach(function(o){ msPlan(o.ms, " (" + o.name + ")").forEach(function(x){ out.push(x); }); });
       return out;
     }
     var lastPlanSig = "";
+    // ---- flower watering reminder -------------------------------------
+    // One daily ping at the player's own clock time, for as long as any of
+    // the active profile's flowers is still growing. The setting is the
+    // person's (carried across profile switches, like sound and flash).
+    function waterCfg(){
+      var w = T().water;
+      if(!w || typeof w !== "object"){ w = T().water = { on:false, at:"17:00" }; }
+      return w;
+    }
+    function growingFlowers(at){
+      return T().plots.filter(function(p){ return !p.kind && FLOWER_ICON[p.crop] && p.endsAt > at && p.startedAt <= at; });
+    }
+    function waterInstant(dayOffset){
+      var hm = (waterCfg().at || "17:00").split(":"), d = new Date();
+      d.setDate(d.getDate() + dayOffset); d.setHours(parseInt(hm[0], 10) || 0, parseInt(hm[1], 10) || 0, 0, 0);
+      return d.getTime();
+    }
+    function waterBody(list){
+      var names = list.map(function(p){ return p.crop; });
+      return (names.length > 3 ? names.slice(0, 3).join(", ") + " and " + (names.length - 3) + " more" : names.join(", ")) + " still growing.";
+    }
+    function waterPlan(){
+      var out = [];
+      if(!waterCfg().on) return out;
+      for(var i = 0; i < 8; i++){
+        var t = waterInstant(i), g = growingFlowers(t);
+        if(t > Date.now() && g.length) out.push({ at:t, title:"Time to water your flowers", body:waterBody(g) });
+      }
+      return out;
+    }
+    function waterCheck(now){
+      var w = waterCfg();
+      if(!w.on) return false;
+      var t = waterInstant(0), key = new Date(t).toDateString() + " " + w.at;
+      if(now < t || w.last === key) return false;
+      w.last = key;
+      var g = growingFlowers(t);
+      if(g.length) announce("Time to water your flowers", waterBody(g), false, t);
+      return true;
+    }
+    (function(){
+      var on = document.getElementById("ct-water-on"), at = document.getElementById("ct-water-at");
+      if(!on || !at) return;
+      function paint(){ var w = waterCfg(); on.checked = !!w.on; at.value = w.at || "17:00"; }
+      paint();
+      on.addEventListener("change", function(){
+        var w = waterCfg(); w.on = on.checked;
+        // today's time already gone: start from tomorrow, not with an instant ping
+        if(w.on && Date.now() >= waterInstant(0)) w.last = new Date(waterInstant(0)).toDateString() + " " + w.at;
+        save(); pushSchedule(); if(w.on) askAlertsOnce();
+      });
+      at.addEventListener("change", function(){
+        var w = waterCfg(); if(!at.value) return; w.at = at.value;
+        if(Date.now() >= waterInstant(0)) w.last = new Date(waterInstant(0)).toDateString() + " " + w.at;
+        save(); pushSchedule();
+      });
+    })();
+
     function planSig(){
-      return T().plots.map(function(p){ return p.id + ":" + p.endsAt + ":" + (p.weeds ? p.weeds.length : 0); }).join("|") +
+      return JSON.stringify(waterCfg()) + T().plots.map(function(p){ return p.id + ":" + p.endsAt + ":" + (p.weeds ? p.weeds.length : 0); }).join("|") +
         "~" + msSig() + "~" + profileTag(state.profiles && state.profiles.active) + otherProfilePlots().map(function(o){
           return o.name + "=" + o.plots.map(function(p){ return p.id + ":" + p.endsAt; }).join(",");
         }).join(";") +
@@ -11666,6 +11737,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
         if(r.length) announce((r.length === 1 ? r[0].crop + (r[0].kind === "feeder" ? " is empty" : " is ready") : r.length + " timers are ready") +
           " (" + o.name + ")", r.map(function(p){ return p.crop; }).join(", "), true, Math.max.apply(null, r.map(function(p){ return p.endsAt; })));
       });
+      if(waterCheck(now)) changed = true;
       if(msCheck(state.membership, tagA, now)) changed = true;
       otherProfileMemberships().forEach(function(o){ if(msCheck(o.ms, " (" + o.name + ")", now)) changed = true; });
       flushAlerts();
@@ -12895,7 +12967,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     var pf = state.profiles;
     if(!pf || id === pf.active || !pf.data[id]) return;
     var target = pf.data[id], stash = {};
-    var sound = state.timers.sound, flash = state.timers.flash;
+    var sound = state.timers.sound, flash = state.timers.flash, water = state.timers.water;
     profileKeys().forEach(function(k){ stash[k] = state[k]; });
     profileKeys().forEach(function(k){ if(target[k] !== undefined) state[k] = target[k]; else delete state[k]; });
     pf.data[pf.active] = JSON.parse(JSON.stringify(stash));
@@ -12903,6 +12975,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     pf.active = id;
     normalizeState();
     state.timers.sound = sound; state.timers.flash = flash;   // sound/flash are the person's, not the account's
+    if(water) state.timers.water = water;                      // so is the watering reminder time
     save();
     rerenderAll();
   }
