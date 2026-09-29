@@ -3362,6 +3362,8 @@
       <button role="tab" data-sub="wiki" data-target="wiki-flowers">Flowers</button>
       <button role="tab" data-sub="wiki" data-target="wiki-animals">Animals</button>
       <button role="tab" data-sub="wiki" data-target="wiki-fish">Fish</button>
+      <button role="tab" data-sub="wiki" data-target="wiki-birds">Birds</button>
+      <button role="tab" data-sub="wiki" data-target="wiki-insects">Insects</button>
       <button role="tab" data-sub="wiki" data-target="wiki-blueprints">Blueprints</button>
       <button role="tab" data-sub="wiki" data-target="wiki-quests">Quests &amp; Systems</button>
       <button role="tab" data-sub="wiki" data-target="wiki-shops">Shops</button>
@@ -3521,6 +3523,36 @@
         <div class="tbl-search-empty" id="fish-empty" hidden>No fish match those filters.</div>
       </div>
       <div class="notice" style="margin-top:12px;">Levels, weather, hours, shadow sizes and prices from AthenaMM's community sheet.</div>
+    </div>
+
+    <div class="subpanel" id="wiki-birds" style="display:none;">
+      <div class="section-title">
+        <div><h2>Birds</h2><p>Every bird you can photograph &mdash; level, weather, active hours, photo range and value at each star rating. See the Map tab for where each one turns up.</p></div>
+      </div>
+      <div class="card fish-filters" id="birds-filters"></div>
+      <div class="card table-wrap" style="margin-top:12px;">
+        <table id="birds-table">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+        <div class="tbl-search-empty" id="birds-empty" hidden>No birds match those filters.</div>
+      </div>
+      <div class="notice" style="margin-top:12px;">Levels, weather, hours, places and 5&#9733; prices from AthenaMM's community sheet; the few entries only Tidebell lists have no price yet. Lower-star prices are worked out from the 5&#9733; price (&times;1, &times;1.5, &times;2, &times;4, &times;8 steps), so they're marked &asymp;.</div>
+    </div>
+
+    <div class="subpanel" id="wiki-insects" style="display:none;">
+      <div class="section-title">
+        <div><h2>Insects</h2><p>Every insect you can catch &mdash; level, weather, active hours and sell price at each star rating. See the Map tab for where each one turns up.</p></div>
+      </div>
+      <div class="card fish-filters" id="insects-filters"></div>
+      <div class="card table-wrap" style="margin-top:12px;">
+        <table id="insects-table">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+        <div class="tbl-search-empty" id="insects-empty" hidden>No insects match those filters.</div>
+      </div>
+      <div class="notice" style="margin-top:12px;">Levels, weather, hours, places and 5&#9733; prices from AthenaMM's community sheet; the few entries only Tidebell lists have no price yet. Lower-star prices are worked out from the 5&#9733; price (&times;1, &times;1.5, &times;2, &times;4, &times;8 steps), so they're marked &asymp;.</div>
     </div>
 
     <div class="subpanel" id="wiki-blueprints" style="display:none;">
@@ -8212,6 +8244,130 @@
     });
     render();
   })();
+
+  // ---- Birds and Insects wiki pages ----
+  // Same layout as Fish, built from SPECIES. Only the 5-star value is in the
+  // sheet; lower stars use the usual STAR_MULT steps and show as "≈".
+  function critterPage(key, list, noun, opts){
+    var table = document.getElementById(key + "-table");
+    var box = document.getElementById(key + "-filters");
+    if(!table || !box) return;
+    var head = table.querySelector("thead"), body = table.querySelector("tbody");
+    var empty = document.getElementById(key + "-empty");
+    var WX_ICON = { S:"\u2600\ufe0f", R:"\ud83c\udf27\ufe0f", N:"\u2744\ufe0f", B:"\ud83c\udf08" };
+    var id = function(x){ return key + "-" + x; };
+    box.innerHTML =
+      '<div class="tbl-search-box" style="margin:0;">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="16.2" y1="16.2" x2="21" y2="21"></line></svg>' +
+        '<input type="text" id="' + id("search") + '" placeholder="Search ' + noun + '\u2026" aria-label="Search ' + noun + '">' +
+      "</div>" +
+      '<div class="ff-row"><span class="ff-label">Price at</span><div class="map-filter" id="' + id("star") + '" role="group" aria-label="Star rating price">' +
+        [1,2,3,4,5].map(function(n){ return '<button type="button" class="btn subtle small" data-star="' + n + '" aria-pressed="' + (n === 5) + '">&#9733;' + n + "</button>"; }).join("") +
+        '<button type="button" class="btn subtle small" data-star="all" aria-pressed="false">All stars</button></div></div>' +
+      '<div class="ff-row"><span class="ff-label">Weather</span><div class="map-filter" id="' + id("wx") + '" role="group" aria-label="Weather">' +
+        [["S","Sunny"],["R","Rain"],["N","Snow"],["B","Rainbow"]].map(function(w){ return '<button type="button" class="btn subtle small" data-wx="' + w[0] + '" aria-pressed="true">' + WX_ICON[w[0]] + " " + w[1] + "</button>"; }).join("") +
+      "</div></div>" +
+      '<div class="ff-selects">' +
+        '<label>Location<select id="' + id("loc") + '"><option value="">Anywhere</option></select></label>' +
+        '<label>Hours<select id="' + id("time") + '"><option value="">Any</option><option value="all">All day only</option><option value="limited">Limited hours</option></select></label>' +
+        '<label>Level<select id="' + id("lv") + '"><option value="">Any</option></select></label>' +
+        '<label>Sort<select id="' + id("sort") + '"><option value="lv">Level</option><option value="pdesc">Price: high \u2192 low</option><option value="pasc">Price: low \u2192 high</option><option value="name">Name</option></select></label>' +
+      "</div>" +
+      '<div class="ff-foot"><span id="' + id("count") + '" class="muted"></span><button type="button" class="btn subtle small" id="' + id("reset") + '">Reset filters</button></div>';
+
+    var countEl = document.getElementById(id("count"));
+    var fresh = function(){ return { q:"", star:"5", wx:{S:1,R:1,N:1,B:1}, loc:"", time:"", lv:"", sort:"lv" }; };
+    var f = fresh();
+    var locs = {}, lvs = {};
+    list.forEach(function(e){ e.at.forEach(function(a){ locs[a] = 1; }); if(e.sp) locs[e.sp] = 1; lvs[e.lv] = 1; });
+    var locSel = document.getElementById(id("loc"));
+    Object.keys(locs).sort().forEach(function(a){ var o = document.createElement("option"); o.value = a; o.textContent = a; locSel.appendChild(o); });
+    var lvSel = document.getElementById(id("lv"));
+    Object.keys(lvs).map(Number).sort(function(a,b){ return a-b; }).forEach(function(l){ var o = document.createElement("option"); o.value = l; o.textContent = "Lv " + l; lvSel.appendChild(o); });
+
+    function price(e, star){ return e.p ? (star === 5 ? e.p : Math.round(e.p / 8 * STAR_MULT[star - 1])) : null; }
+    function cell(e, star, hi){
+      var v = price(e, star);
+      if(v == null) return '<td class="num-cell"><span class="muted">&mdash;</span></td>';
+      return '<td class="num-cell' + (hi ? " ff-hi" : "") + '">' + (star < 5 ? "&asymp;" : "") + v.toLocaleString() + "g</td>";
+    }
+    function sortPrice(e){ return price(e, f.star === "all" ? 5 : parseInt(f.star, 10)) || 0; }
+    function wxHtml(w){
+      if(w === "SRNB") return '<span class="muted">Any</span>';
+      return w.split("").map(function(c){ return WX_ICON[c] || c; }).join(" ");
+    }
+    function passes(e){
+      if(f.q && (e.n + " " + e.at.join(" ") + " " + (e.sp || "")).toLowerCase().indexOf(f.q) < 0) return false;
+      if(!e.w.split("").some(function(c){ return f.wx[c]; })) return false;
+      if(f.loc && e.at.indexOf(f.loc) < 0 && e.sp !== f.loc) return false;
+      if(f.time === "all" && e.t) return false;
+      if(f.time === "limited" && !e.t) return false;
+      if(f.lv && String(e.lv) !== f.lv) return false;
+      return true;
+    }
+    function render(){
+      var all = f.star === "all";
+      head.innerHTML = "<tr><th>" + opts.label + '</th><th class="num-cell">Lv</th><th>Weather</th><th>Active hours</th>' +
+        (opts.range ? "<th>Photo range</th>" : "") +
+        (all ? [1,2,3,4,5].map(function(n){ return '<th class="num-cell">&#9733;' + n + "</th>"; }).join("")
+             : '<th class="num-cell">&#9733;' + f.star + " " + opts.priceWord + "</th>") +
+        "<th>Found at</th></tr>";
+      var rows = list.filter(passes);
+      rows.sort(function(a, b){
+        if(f.sort === "pdesc") return sortPrice(b) - sortPrice(a) || a.n.localeCompare(b.n);
+        if(f.sort === "pasc") return sortPrice(a) - sortPrice(b) || a.n.localeCompare(b.n);
+        if(f.sort === "name") return a.n.localeCompare(b.n);
+        return (a.lv || 0) - (b.lv || 0) || a.n.localeCompare(b.n);
+      });
+      body.innerHTML = rows.map(function(e){
+        var where = e.at.length ? escapeHtml(e.at.join(", ")) : "";
+        if(e.sp) where += (where ? " " : "") + '<span class="muted">(' + escapeHtml(e.sp) + ")</span>";
+        return "<tr><td>" + itemThumb(e.n, true) + escapeHtml(e.n) + "</td>" +
+          '<td class="num-cell">' + e.lv + "</td>" +
+          "<td>" + wxHtml(e.w) + "</td>" +
+          "<td>" + (e.t ? escapeHtml(e.t) : '<span class="muted">All day</span>') + "</td>" +
+          (opts.range ? "<td>" + escapeHtml(e.r || "") + "</td>" : "") +
+          (all ? [1,2,3,4,5].map(function(n){ return cell(e, n, false); }).join("") : cell(e, parseInt(f.star, 10), true)) +
+          "<td>" + (where || '<span class="muted">&mdash;</span>') + "</td></tr>";
+      }).join("");
+      empty.hidden = rows.length > 0;
+      countEl.textContent = rows.length + " of " + list.length + " " + noun;
+    }
+    var search = document.getElementById(id("search"));
+    search.addEventListener("input", function(){ f.q = this.value.trim().toLowerCase(); render(); });
+    var starBtns = box.querySelectorAll("#" + id("star") + " > button");
+    Array.prototype.forEach.call(starBtns, function(b){
+      b.addEventListener("click", function(){
+        f.star = b.getAttribute("data-star");
+        Array.prototype.forEach.call(starBtns, function(o){ o.setAttribute("aria-pressed", o === b ? "true" : "false"); });
+        render();
+      });
+    });
+    var wxBtns = box.querySelectorAll("#" + id("wx") + " > button");
+    Array.prototype.forEach.call(wxBtns, function(b){
+      b.addEventListener("click", function(){
+        var k = b.getAttribute("data-wx");
+        f.wx[k] = f.wx[k] ? 0 : 1;
+        b.setAttribute("aria-pressed", f.wx[k] ? "true" : "false");
+        render();
+      });
+    });
+    ["loc","time","lv","sort"].forEach(function(k){
+      document.getElementById(id(k)).addEventListener("change", function(){ f[k] = this.value; render(); });
+    });
+    document.getElementById(id("reset")).addEventListener("click", function(){
+      f = fresh();
+      search.value = "";
+      ["loc","time","lv"].forEach(function(k){ document.getElementById(id(k)).value = ""; });
+      document.getElementById(id("sort")).value = "lv";
+      Array.prototype.forEach.call(starBtns, function(o){ o.setAttribute("aria-pressed", o.getAttribute("data-star") === "5" ? "true" : "false"); });
+      Array.prototype.forEach.call(wxBtns, function(o){ o.setAttribute("aria-pressed", "true"); });
+      render();
+    });
+    render();
+  }
+  critterPage("birds", SPECIES.birds, "birds", { label:"Bird", range:true, priceWord:"value" });
+  critterPage("insects", SPECIES.insects, "insects", { label:"Insect", range:false, priceWord:"price" });
 
   // Roles and bios are the game's own profile text (checked against Tidebell's
   // resident list and the community wiki). Every resident's exact spot is on
