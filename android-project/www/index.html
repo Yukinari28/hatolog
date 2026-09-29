@@ -1613,6 +1613,11 @@
   .m-name-input{ font-weight:700; border:1px solid transparent; background:transparent; padding:6px 7px; border-radius:8px; width:100%; box-sizing:border-box; }
   .m-name-input:hover, .m-name-input:focus{ border-color:var(--border); background:var(--surface); }
   .m-num{ width:100%; box-sizing:border-box; text-align:right; padding:6px 6px; }
+  .m-steps{ display:flex; flex-direction:column; gap:2px; margin-top:4px; }
+  .m-step{ border:1px solid var(--border); background:var(--surface-2); color:var(--text-muted); border-radius:6px;
+    font:inherit; font-size:0.68rem; line-height:1.3; padding:1px 4px; cursor:pointer; text-align:right; font-variant-numeric:tabular-nums; }
+  .m-step:hover{ color:var(--text); border-color:var(--accent); }
+  .m-step.on{ background:var(--accent-soft); color:var(--accent-ink); border-color:var(--accent); font-weight:700; }
   .m-tier-select{ padding:5px 6px; font-size:0.78rem; font-weight:700; border-radius:8px; border:none; width:100%; box-sizing:border-box; }
   .m-bar-wrap{ width:100%; height:9px; border-radius:5px; background:var(--surface-3); overflow:hidden; }
   .m-bar-fill{ height:100%; border-radius:5px; }
@@ -4198,6 +4203,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="16.2" y1="16.2" x2="21" y2="21"></line></svg>
         <input type="text" id="mastery-search" placeholder="Search this category's recipes…" aria-label="Search mastery recipes">
       </div>
+      <button type="button" class="btn subtle small" id="mastery-max-btn" title="Sets every recipe in this category with known mastery numbers to its Master amount. Your current counts stay as they are.">Set targets to Master</button>
       <button type="button" class="btn subtle small" id="mastery-sync-btn" title="Add any recipe category from the Recipes tab that isn't in your list yet. Never touches or removes anything you already have.">+ Add missing recipes</button>
     </div>
     <div id="mastery-panels"></div>
@@ -6553,7 +6559,23 @@
     ];
   }
 
+  // How many preparations each recipe takes to reach Apprentice, Expert and
+  // Master, from Heartodex's recipe pages (checked Sep 30, 2026; Fish & Chips'
+  // 960 also confirmed by a player in game). Keyed by a loose form of the name
+  // so "Fish N Chips" or "Grilled Mushroom" still match. Event dishes have no
+  // mastery and aren't listed.
+  var MASTERY_STEPS = {"afternoon tea":[80,240,480],"apple jam":[160,480,960],"apple milkshake":[60,180,360],"apple pie":[120,360,720],"baked eggplant with meat":[60,180,360],"black truffle cream pasta":[80,240,480],"black truffle pie":[120,360,720],"blue european crayfish sashimi":[60,180,360],"blue roll cake":[45,135,270],"blueberry milkshake":[60,180,360],"blueberry jam":[160,480,960],"carrot cake":[120,360,720],"button mushroom pie":[120,360,720],"cheese cake":[160,480,960],"candlelight dinner":[60,180,360],"cheese crayfish stuffed crab claw":[60,180,360],"chocolate sauce":[160,480,960],"cocoa milk tea":[60,180,360],"cocoa milkshake":[60,180,360],"coffee latte":[160,480,960],"crayfish avocado cup":[60,180,360],"coffee":[160,480,960],"crayfish sashimi":[60,180,360],"corn soup":[120,360,720],"daisy tea":[60,180,360],"exquisite afternoon tea":[60,180,360],"fish and chip":[160,480,960],"deluxe seafood platter":[60,180,360],"glasswort and shrimp fried rice":[160,480,960],"grape jam":[160,480,960],"grape milkshake":[60,180,360],"green milk tea":[60,180,360],"green tea":[60,180,360],"green roll cake":[15,45,90],"grilled button mushroom":[120,360,720],"grilled mushroom":[120,360,720],"grilled oyster mushroom":[120,360,720],"grilled penny bun":[120,360,720],"grilled shiitake mushroom":[120,360,720],"indigo roll cake":[45,135,270],"house salad":[160,480,960],"mandarin jam":[160,480,960],"mandarin milkshake":[60,180,360],"matcha green milk tea":[60,180,360],"matcha milkshake":[60,180,360],"meat burger":[80,240,480],"meat sauce pasta":[120,360,720],"mellow black tea":[60,180,360],"mellow milk tea":[60,180,360],"milkshake":[60,180,360],"mixed jam":[160,480,960],"mushroom pie":[120,360,720],"orange roll cake":[15,45,90],"original roll cake":[45,135,270],"oyster mushroom pie":[120,360,720],"picnic set":[80,240,480],"pineapple jam":[160,480,960],"pineapple milkshake":[60,180,360],"penny bun pie":[120,360,720],"raspberry jam":[160,480,960],"raspberry milkshake":[60,180,360],"red roll cake":[15,45,90],"rose tea":[60,180,360],"sea grape and shiitake chawanmushi":[160,480,960],"rustic ratatouille":[120,360,720],"seafood pizza":[120,360,720],"seafood risotto":[120,360,720],"shiitake pie":[120,360,720],"smoked fish bagel":[160,480,960],"steamed golden king crab":[60,180,360],"steamed king crab":[60,180,360],"strawberry jam":[160,480,960],"strawberry milkshake":[60,180,360],"tiramisu":[80,240,480],"tomato sauce":[160,480,960],"violet roll cake":[45,135,270],"wakame meatball soup":[160,480,960],"yellow roll cake":[15,45,90]};
+  function masteryKey(name){
+    return String(name||"").toLowerCase().replace(/&/g," and ").replace(/\bw\//g,"with ").replace(/\bn\b/g,"and")
+      .replace(/[^a-z0-9]+/g," ").trim().split(" ").map(function(w){ return w.replace(/s$/,""); }).join(" ");
+  }
+  function masterySteps(name){ return MASTERY_STEPS[masteryKey(name)] || null; }
+  var MASTERY_STEP_TIERS = ["Apprentice","Expert","Master"];
+
   function mrecipe(name,tier,current,total,ings){
+    // A new recipe aims for Master when its numbers are known.
+    var st = masterySteps(name);
+    if(st && total === 100 && !current) total = st[2];
     return { id:cid(), name:name, include:true, tier:tier, current:current, total:total,
       ingredients: ings.map(function(i){ return {id:cid(), name:i[0], qty:i[1]}; }) };
   }
@@ -12367,6 +12389,21 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       var totInp = document.createElement("input"); totInp.type="number"; totInp.min="0"; totInp.className="m-num"; totInp.value=r.total;
       totInp.addEventListener("input", function(){ r.total = Math.max(0, parseInt(totInp.value)||0); save(); recomputeRow(r.id); renderFooter(); });
       tdTotal.appendChild(totInp);
+      var st = masterySteps(r.name);
+      if(st){
+        var chips = el("div","m-steps");
+        st.forEach(function(v, i){
+          var b = document.createElement("button"); b.type = "button"; b.className = "m-step";
+          b.textContent = v.toLocaleString(); b.title = "Set target to " + MASTERY_STEP_TIERS[i] + " (" + v.toLocaleString() + ")";
+          if(r.total === v) b.classList.add("on");
+          b.addEventListener("click", function(){
+            r.total = v; totInp.value = v; save(); recomputeRow(r.id); renderFooter();
+            Array.prototype.forEach.call(chips.children, function(c){ c.classList.toggle("on", c === b); });
+          });
+          chips.appendChild(b);
+        });
+        tdTotal.appendChild(chips);
+      }
 
       var tdIng = el("td", null, "");
       var ingWrap = document.createElement("div");
@@ -12479,6 +12516,21 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     save();
     renderMasterySubtabs(); renderMasteryPanel();
     return { addedCats: addedCats, addedRecipes: addedRecipes };
+  }
+  var masteryMaxBtn = document.getElementById("mastery-max-btn");
+  if(masteryMaxBtn){
+    masteryMaxBtn.addEventListener("click", function(){
+      var cat = findCat(activeMasteryCat); if(!cat) return;
+      var n = 0, unknown = 0;
+      cat.recipes.forEach(function(r){
+        var st = masterySteps(r.name);
+        if(!st){ unknown++; return; }
+        if(r.total !== st[2]){ r.total = st[2]; n++; }
+      });
+      save(); renderMasteryPanel();
+      alert(n ? "Set " + n + " target" + (n===1?"":"s") + " in " + cat.name + " to Master." + (unknown ? " " + unknown + " recipe" + (unknown===1?" has":"s have") + " no mastery numbers yet, so " + (unknown===1?"it was":"they were") + " left alone." : "")
+              : (unknown === cat.recipes.length ? "No mastery numbers are known for the recipes in " + cat.name + " yet." : "Every target in " + cat.name + " is already at Master."));
+    });
   }
   var masterySyncBtn = document.getElementById("mastery-sync-btn");
   if(masterySyncBtn){
