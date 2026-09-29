@@ -4178,6 +4178,10 @@
             <label for="cook-cat">Category</label>
             <select id="cook-cat"><option value="">All categories</option></select>
           </div>
+          <div class="field" style="min-width:min(200px,100%);">
+            <label for="cook-kind">Type</label>
+            <select id="cook-kind"><option value="">Everything</option><option value="regular">Regular recipes</option><option value="permanent">Event recipes you keep</option><option value="limited">Limited-time event food</option><option value="more">More dishes</option></select>
+          </div>
         </div>
       </div>
       <div class="card table-wrap">
@@ -5345,7 +5349,7 @@
     { cat:"Basics", kind:"regular", items:[
       ["Bizarre food",1,[["Any food",1]],"varies",null,30,1],
       ["Bizarre drink",1,[["Any drink",1]],"varies",null,30,1],
-      ["House Salad",1,[["Vegetable",2]],20,40,90]
+      ["House Salad",1,[["Vegetable or Sea Vegetable",2]],20,40,90]
     ]},
     { cat:"Jams", kind:"regular", items:[
       ["Mixed Jam",1,[["Fruit",4]],0,64,160],
@@ -5415,7 +5419,7 @@
       ["Wakame Meatball Soup",1,[["Wakame",2],["Meat",2]],420,20,500],
       ["Glassworts & Shrimp Fried Rice",1,[["Glasswort",2],["Paddy Rice",1],["Common Prawn",1]],82,45,160],
       ["Deluxe Seafood Platter",6,[["Shellfish",2],["Fish",2]],0,300,410],
-      ["Seafood Risotto",3,[["Fish",1],["Wheat",1],["Tomato",1]],105,310,490],
+      ["Seafood Risotto",3,[["Seafood",1],["Wheat",1],["Tomato",1]],105,310,490], // any seafood, sea vegetables too (Tidebell; checked in game). Tidebell lists ×2, the sheet ×1
       ["Smoked Fish Bagel",2,[["Cheese",1],["Fish",1],["Wheat",1],["Vegetable",1]],205,null,520],
       ["Seafood Pizza",4,[["Cheese",1],["Tomato Sauce",1],["Wheat",1],["Fish",1]],235,320,780],
       ["Steamed King Crab",10,[["King Crab",3],["Butter",1]],150,1605,1990],
@@ -5425,7 +5429,7 @@
     ]},
     { cat:"Sets", kind:"regular", items:[
       ["Afternoon Tea",7,[["Tiramisu",1],["Fruit or Vegetable",1]],350,16,710],
-      ["Picnic Set",7,[["Seafood Pizza",1],["Apple Pie",1],["Fish N Chips",1],["Any Beverage",1]],740,758,2260],
+      ["Picnic Set",7,[["Seafood Pizza",1],["Apple Pie",1],["Fish N Chips",1],["Coffee or Latte",1]],740,758,2260],
       ["Candlelight Dinner",9,[["House Salad",1],["Smoked Fish Bagel",1],["Seafood Risotto",1],["Tiramisu",1]],680,610,1760],
       ["Crayfish Sashimi",8,[["Shellfish",3],["Lettuce",1]],145,590,850],
       ["Blue European Crayfish Sashimi",8,[["Blue European Crayfish",3],["Lettuce",1]],145,1040,1310],
@@ -5875,12 +5879,12 @@
     "Fruit":0, "Any Fruit":0, "Apple":0, "Blueberry":0, "Raspberry":0, "Mandarin":0,
     "Mushroom":0, "Button Mushroom":0, "Oyster Mushroom":0, "Penny Bun":0,
     "Shiitake Mushroom":0, "Black Truffle":0, "Weed":0, "Sugar":0,
-    "Fish":0, "Shellfish":0, "King Crab":0, "Golden King Crab":0, "Blue European Crayfish":0,
+    "Fish":0, "Seafood":0, "Coffee or Latte":0, "Shellfish":0, "King Crab":0, "Golden King Crab":0, "Blue European Crayfish":0,
     "Pale Gold Garfish":0, "Brown Garfish":0, "Silver Garfish":0, "Black Garfish":0, "Gold Garfish":0,
     "Bamboo Leaf":0, "Coffee":0,
     "Coffee Beans or Milk":0, "Tea Leaves or Milk":0, "Tea Tree or Milk":0,
     // bought or grown, price not in a shop list above
-    "Vegetable":10, "Wakame":10, "Sea Grape":18, "Tomato Sauce":40,
+    "Vegetable":10, "Vegetable or Sea Vegetable":10, "Wakame":10, "Sea Grape":18, "Tomato Sauce":40,
     "White Daisy":60, "Red Rose":300,
     // the event's own stock, under the names the recipes use for it
     "Charcoal":50, "Date Paste":50
@@ -6461,7 +6465,7 @@
       { id:"basics", name:"Basics", recipes:[
         mrecipe("Bizarre food","Beginner",0,100,[["Any food",1]]),
         mrecipe("Bizarre drink","Beginner",0,100,[["Any drink",1]]),
-        mrecipe("House Salad","Beginner",0,100,[["Vegetable",2]])
+        mrecipe("House Salad","Beginner",0,100,[["Vegetable or Sea Vegetable",2]])
       ]},
       { id:"jams", name:"Jams", recipes:[
         mrecipe("Mixed Jam","Beginner",0,100,[["Fruit",4]]),
@@ -6531,7 +6535,7 @@
         mrecipe("Wakame Meatball Soup","Beginner",0,100,[["Wakame",2],["Meat",2]]),
         mrecipe("Glassworts & Shrimp Fried Rice","Beginner",0,100,[["Glasswort",2],["Paddy Rice",1],["Common Prawn",1]]),
         mrecipe("Deluxe Seafood Platter","Beginner",0,100,[["Shellfish",2],["Fish",2]]),
-        mrecipe("Seafood Risotto","Beginner",0,100,[["Fish",1],["Wheat",1],["Tomato",1]]),
+        mrecipe("Seafood Risotto","Beginner",0,100,[["Seafood",1],["Wheat",1],["Tomato",1]]),
         mrecipe("Smoked Fish Bagel","Beginner",0,100,[["Cheese",1],["Fish",1],["Wheat",1],["Vegetable",1]]),
         mrecipe("Seafood Pizza","Beginner",0,100,[["Cheese",1],["Tomato Sauce",1],["Wheat",1],["Fish",1]]),
         mrecipe("Steamed King Crab","Beginner",0,100,[["King Crab",3],["Butter",1]]),
@@ -6541,7 +6545,7 @@
       ]},
       { id:"sets", name:"Sets", recipes:[
         mrecipe("Afternoon Tea","Beginner",0,100,[["Tiramisu",1],["Fruit or Vegetable",1]]),
-        mrecipe("Picnic Set","Beginner",0,100,[["Seafood Pizza",1],["Apple Pie",1],["Fish N Chips",1],["Any Beverage",1]]),
+        mrecipe("Picnic Set","Beginner",0,100,[["Seafood Pizza",1],["Apple Pie",1],["Fish N Chips",1],["Coffee or Latte",1]]),
         mrecipe("Candlelight Dinner","Beginner",0,100,[["House Salad",1],["Smoked Fish Bagel",1],["Seafood Risotto",1],["Tiramisu",1]]),
         mrecipe("Crayfish Sashimi","Beginner",0,100,[["Shellfish",3],["Lettuce",1]]),
         mrecipe("Blue European Crayfish Sashimi","Beginner",0,100,[["Blue European Crayfish",3],["Lettuce",1]]),
@@ -12249,8 +12253,10 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
   function runCookCalc(){
     var star = parseInt(document.getElementById("cook-star").value)||5;
     var catFilter = cookCatSel.value;
+    var kindFilter = document.getElementById("cook-kind").value;
+    var kindOf = {}; RECIPE_CATEGORIES.forEach(function(g){ kindOf[g.cat] = g.kind; });
     var rows = ALL_RECIPES.filter(function(x){
-      return recipeMaxStar(x.r)>=star && (!catFilter || x.cat===catFilter) && recipeStarPrice(x.r,star)!=null;
+      return recipeMaxStar(x.r)>=star && (!catFilter || x.cat===catFilter) && (!kindFilter || kindOf[x.cat]===kindFilter) && recipeStarPrice(x.r,star)!=null;
     }).map(function(x){
       var net = recipeNet(x.r, star);
       var raw = x.r[4];
@@ -12271,6 +12277,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
   }
   document.getElementById("cook-star").addEventListener("change", runCookCalc);
   cookCatSel.addEventListener("change", runCookCalc);
+  document.getElementById("cook-kind").addEventListener("change", runCookCalc);
   runCookCalc();
 
   // ---------- CRAFTING CALCULATOR ----------
