@@ -13370,7 +13370,9 @@ phaseHead(WX_BLOCKS[p], p) + rows + "</div>";
         if(!pick[p.id]){ pick[p.id] = p; order.push(p.id); }
         else if(ver(p) > ver(pick[p.id])) pick[p.id] = p;
       });
-      x.t.plots = order.filter(function(id){ return !(gone[id] && gone[id] >= ver(pick[id])); })
+      // Two minutes of slack, so a device whose clock runs a little fast can't
+      // undo a removal made on another one.
+      x.t.plots = order.filter(function(id){ return !(gone[id] && gone[id] + 120000 >= ver(pick[id])); })
                        .map(function(id){ return JSON.parse(JSON.stringify(pick[id])); });
       x.t.gone = gone;
     });
@@ -13400,10 +13402,16 @@ phaseHead(WX_BLOCKS[p], p) + rows + "</div>";
       });
     }).then(function(){
       if(uid !== currentUid || !out) return;
-      setBase(out);
-      // The merge may have brought in the other device's timers: show them here too.
+      // Anything done here while the write was in flight (collecting a crop,
+      // mostly) is stamped against the old base first, so the older copy we
+      // just wrote can't bring a collected plot back.
       var cur = window.__hh.getState();
-      if(timersSig(out) !== timersSig(cur)) applyMerged(mergeTimers(JSON.parse(JSON.stringify(cur)), out));
+      markLocal(cur);
+      setBase(out);
+      // The merge may also have brought in the other device's timers: show them here too.
+      var merged = mergeTimers(JSON.parse(JSON.stringify(cur)), out);
+      if(timersSig(merged) !== timersSig(cur)) applyMerged(merged);
+      if(timersSig(merged) !== timersSig(out)) writeAgain = true;
     }).catch(function(e){
       console.warn("HatoLog: cloud save failed.", e);
     }).then(function(){
