@@ -6691,6 +6691,8 @@
       sound: tm.sound !== false,
       flash: tm.flash !== false
     };
+    if(tm.water && typeof tm.water === "object") state.timers.water = tm.water;
+    if(tm.gone && typeof tm.gone === "object") state.timers.gone = tm.gone;
     // Older saves used local date strings (dailyResetDate/weeklyResetDate) instead
     // of fixed UTC instants — treat those as "never reset under the new scheme"
     // rather than crashing on them; the first check below will catch them up.
@@ -13163,6 +13165,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
   var IS_CAPACITOR = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
   var NEEDS_EXTERNAL_BROWSER = IS_ELECTRON || IS_CAPACITOR;
 
+  var runTransaction;
   var auth, db, provider, fsDoc, fsGetDoc, fsSetDoc, onSnapshot, signInWithPopup, signInWithCredential, googleCredentialFromIdToken, signOut, onAuthStateChanged;
   try{
     var mods = await Promise.all([
@@ -13181,6 +13184,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     onAuthStateChanged = mods[1].onAuthStateChanged;
     db = mods[2].getFirestore(app);
     fsDoc = mods[2].doc; fsGetDoc = mods[2].getDoc; fsSetDoc = mods[2].setDoc; onSnapshot = mods[2].onSnapshot;
+    runTransaction = mods[2].runTransaction;
   }catch(e){
     console.warn("HatoLog: cloud sign-in unavailable (Firebase didn't load).", e);
     return;
@@ -13277,82 +13281,161 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
   var applyingRemote = false;
   var syncTimer = null;
   var unsubscribeSnapshot = null;
-  window.__hh.onSave(function(state){
+  // ---- timers: merged plot by plot ----
+  // The rest of the save still goes up as one document, but timers are the part
+  // two devices change at the same time (start a crop on the phone, collect one
+  // on the PC), and "last device to save wins" kept losing those changes — a
+  // phone waking up would push its old list over the PC's newer one. So every
+  // write re-reads the cloud copy in a transaction and merges timers first, and
+  // every incoming copy is merged with this device's unsent changes.
+  //
+  // A plot's version is when it last changed here (mt), else when it started.
+  // A plot removed on one device leaves a tombstone (timers.gone[id] = time) so
+  // the other device doesn't bring it back; tombstones expire after 14 days.
+  // What was last in step with the cloud is kept per account ("hh.syncBase.<uid>"),
+  // which is how this device tells its own changes apart from stale data.
+  var TOMB_MS = 14 * 86400000;
+  var base = null;
+  function plotJson(p){ var c = {}; Object.keys(p).sort().forEach(function(k){ if(k !== "mt") c[k] = p[k]; }); return JSON.stringify(c); }
+  function ver(p){ return p.mt || p.startedAt || 0; }
+  function timerSets(st){
+    var out = [];
+    if(!st || typeof st !== "object") return out;
+    if(!st.timers || typeof st.timers !== "object") st.timers = { plots:[] };
+    out.push({ pid:(st.profiles && st.profiles.active) || "main", t:st.timers });
+    var data = st.profiles && st.profiles.data;
+    if(data && typeof data === "object") Object.keys(data).forEach(function(pid){
+      var d = data[pid]; if(d && d.timers && typeof d.timers === "object") out.push({ pid:pid, t:d.timers });
+    });
+    out.forEach(function(x){
+      if(!Array.isArray(x.t.plots)) x.t.plots = [];
+      if(!x.t.gone || typeof x.t.gone !== "object") x.t.gone = {};
+    });
+    return out;
+  }
+  function baseKey(){ return "hh.syncBase." + currentUid; }
+  function loadBase(){ try{ base = JSON.parse(localStorage.getItem(baseKey()) || "null"); }catch(e){ base = null; } }
+  function setBase(st){
+    base = {};
+    timerSets(JSON.parse(JSON.stringify(st))).forEach(function(x){
+      var m = {}; x.t.plots.forEach(function(p){ if(p && p.id) m[p.id] = plotJson(p); }); base[x.pid] = m;
+    });
+    try{ localStorage.setItem(baseKey(), JSON.stringify(base)); }catch(e){}
+  }
+  // Stamp this device's own changes since the last sync.
+  function markLocal(st){
+    if(!base) return;
+    var now = Date.now();
+    timerSets(st).forEach(function(x){
+      var prev = base[x.pid]; if(!prev) return;
+      var here = {};
+      x.t.plots.forEach(function(p){
+        if(!p || !p.id) return;
+        here[p.id] = 1;
+        if(prev[p.id] !== plotJson(p) && !(p.mt && p.mt > now - 1000)) p.mt = now;
+      });
+      Object.keys(prev).forEach(function(id){ if(!here[id] && !x.t.gone[id]) x.t.gone[id] = now; });
+    });
+  }
+  // Merge src's timers into dst (dst keeps everything else, and wins ties).
+  function mergeTimers(dst, src){
+    var other = {};
+    timerSets(src).forEach(function(x){ other[x.pid] = x.t; });
+    var cut = Date.now() - TOMB_MS;
+    timerSets(dst).forEach(function(x){
+      var o = other[x.pid]; if(!o) return;
+      var gone = {};
+      [x.t.gone, o.gone].forEach(function(g){ Object.keys(g).forEach(function(id){ if(g[id] >= cut) gone[id] = Math.max(gone[id] || 0, g[id]); }); });
+      var pick = {}, order = [];
+      x.t.plots.concat(o.plots).forEach(function(p){
+        if(!p || !p.id) return;
+        if(!pick[p.id]){ pick[p.id] = p; order.push(p.id); }
+        else if(ver(p) > ver(pick[p.id])) pick[p.id] = p;
+      });
+      x.t.plots = order.filter(function(id){ return !(gone[id] && gone[id] >= ver(pick[id])); })
+                       .map(function(id){ return JSON.parse(JSON.stringify(pick[id])); });
+      x.t.gone = gone;
+    });
+    return dst;
+  }
+  function timersSig(st){
+    return timerSets(JSON.parse(JSON.stringify(st || {}))).map(function(x){ return x.pid + ":" + x.t.plots.map(plotJson).join(","); }).join("|");
+  }
+  function applyMerged(next){
+    applyingRemote = true;
+    try{ window.__hh.replaceState(next); }
+    finally{ applyingRemote = false; }
+  }
+
+  var writing = false, writeAgain = false;
+  function pushCloud(){
+    if(!currentUid || !cloudReady) return;
+    if(writing){ writeAgain = true; return; }
+    writing = true;
+    var uid = currentUid, ref = fsDoc(db, "users", uid), out = null;
+    markLocal(window.__hh.getState());
+    runTransaction(db, function(tx){
+      return tx.get(ref).then(function(snap){
+        out = JSON.parse(JSON.stringify(window.__hh.getState()));
+        if(snap.exists()) mergeTimers(out, snap.data());
+        tx.set(ref, out);
+      });
+    }).then(function(){
+      if(uid !== currentUid || !out) return;
+      setBase(out);
+      // The merge may have brought in the other device's timers: show them here too.
+      var cur = window.__hh.getState();
+      if(timersSig(out) !== timersSig(cur)) applyMerged(mergeTimers(JSON.parse(JSON.stringify(cur)), out));
+    }).catch(function(e){
+      console.warn("HatoLog: cloud save failed.", e);
+    }).then(function(){
+      writing = false;
+      if(writeAgain){ writeAgain = false; pushCloud(); }
+    });
+  }
+  window.__hh.onSave(function(){
     if(!currentUid || !cloudReady || applyingRemote) return;
     clearTimeout(syncTimer);
-    syncTimer = setTimeout(function(){
-      fsSetDoc(fsDoc(db, "users", currentUid), state).catch(function(e){
-        console.warn("HatoLog: cloud save failed.", e);
-      });
-    }, 800);
+    syncTimer = setTimeout(pushCloud, 800);
+  });
+  // A phone coming back from the background may have missed updates while it
+  // slept; a fresh merge-and-write on wake brings both sides back in step.
+  document.addEventListener("visibilitychange", function(){
+    if(!document.hidden && currentUid && cloudReady){ clearTimeout(syncTimer); syncTimer = setTimeout(pushCloud, 1500); }
+  });
+  // A write that failed offline goes up once the connection is back.
+  window.addEventListener("online", function(){
+    if(currentUid && cloudReady){ clearTimeout(syncTimer); syncTimer = setTimeout(pushCloud, 1500); }
   });
 
   onAuthStateChanged(auth, function(user){
     if(unsubscribeSnapshot){ unsubscribeSnapshot(); unsubscribeSnapshot = null; }
-    if(!user){ currentUid = null; cloudReady = false; renderSignedOut(); return; }
+    if(!user){ currentUid = null; cloudReady = false; base = null; renderSignedOut(); return; }
     currentUid = user.uid;
     cloudReady = false;
+    loadBase();
     renderSignedIn(user);
 
-    // A live listener rather than a one-time read: this is what actually
-    // keeps two open devices in step with each other going forward. A
-    // one-time fetch only ever picked up another device's changes at the
-    // moment THIS device happened to sign in — a timer started on the
-    // website stayed invisible on a phone whose app was already open,
-    // sometimes indefinitely, which is exactly what wasn't syncing.
+    // A live listener, so two open devices keep each other up to date.
     var ref = fsDoc(db, "users", user.uid);
-    var seeded = false;
-    var firstSnap = true;
     unsubscribeSnapshot = onSnapshot(ref, function(snap){
-      if(snap.exists()){
-        // A write this same device just made echoes straight back from the
-        // local cache before the server even confirms it — applying that
-        // echo would just mean reprocessing our own change a moment later.
-        if(snap.metadata.hasPendingWrites){ cloudReady = true; return; }
-        var incoming = snap.data();
-        var addedLocal = false;
-        if(firstSnap){
-          // First read after signing in on this device: the cloud copy used
-          // to replace local data outright, so a timer started here while
-          // signed out (or before this device last synced) silently vanished
-          // the moment you logged in. Keep every running timer this device
-          // has that the account doesn't know about yet, then push the merged
-          // result up. Only on this first read — later snapshots still win
-          // outright, so a timer cleared on another device stays cleared.
-          firstSnap = false;
-          try{
-            var local = window.__hh.getState() || {};
-            // Only merge into the same game profile — never drop one account's
-            // timers into another's list.
-            var sameProfile = ((local.profiles && local.profiles.active) || "main") === ((incoming.profiles && incoming.profiles.active) || "main");
-            var localPlots = (sameProfile && local.timers && Array.isArray(local.timers.plots)) ? local.timers.plots : [];
-            if(!incoming.timers || typeof incoming.timers !== "object") incoming.timers = {};
-            if(!Array.isArray(incoming.timers.plots)) incoming.timers.plots = [];
-            var have = {};
-            incoming.timers.plots.forEach(function(p){ if(p && p.id) have[p.id] = true; });
-            localPlots.forEach(function(p){
-              if(p && p.id && !have[p.id]){
-                incoming.timers.plots.push(JSON.parse(JSON.stringify(p)));
-                addedLocal = true;
-              }
-            });
-          }catch(e){ console.warn("HatoLog: couldn't merge local timers.", e); }
-        }
-        applyingRemote = true;
-        try{ window.__hh.replaceState(incoming); }
-        finally{ applyingRemote = false; }
-        if(addedLocal){
-          fsSetDoc(ref, window.__hh.getState()).catch(function(e){
-            console.warn("HatoLog: couldn't upload merged timers.", e);
-          });
-        }
-      }else if(!seeded){
-        seeded = true;
-        fsSetDoc(ref, window.__hh.getState()).catch(function(e){
-          console.warn("HatoLog: initial cloud save failed.", e);
-        });
+      if(!snap.exists()){
+        cloudReady = true;
+        pushCloud();
+        return;
       }
+      // Our own write echoing back from the local cache.
+      if(snap.metadata.hasPendingWrites){ cloudReady = true; return; }
+      var incoming = snap.data();
+      var local = window.__hh.getState() || {};
+      markLocal(local);
+      var next = mergeTimers(JSON.parse(JSON.stringify(incoming)), local);
+      var needPush = timersSig(next) !== timersSig(incoming);
+      setBase(incoming);
+      applyMerged(next);
       cloudReady = true;
+      // This device had timers the account didn't: send them up.
+      if(needPush){ clearTimeout(syncTimer); syncTimer = setTimeout(pushCloud, 300); }
     }, function(e){
       console.warn("HatoLog: cloud sync unavailable — continuing with local data.", e);
       cloudReady = true;
