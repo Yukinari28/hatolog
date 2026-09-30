@@ -4873,7 +4873,11 @@
     var w = c && c[6];
     if(!w) return true;
     now = now || Date.now();
-    return now >= Date.parse(w.f + "T00:00:00") && now < Date.parse(w.t + "T00:00:00") + 86400000;
+    // Season days are game days on the chosen server: they start and end at its
+    // 6:00 AM reset, like events do, not at midnight on this device.
+    var utc = (typeof HH_TIME !== "undefined" && HH_TIME.get()) ? HH_TIME.get().utc : 0;
+    function at(ds, addDays){ var p = ds.split("-").map(Number); return Date.UTC(p[0], p[1]-1, p[2] + addDays, 6 - utc, 0); }
+    return now >= at(w.f, 0) && now < at(w.t, 1);
   }
 
   // [name, category, [[material, qty]...], sells for] — the first block's materials are from AthenaMM's Craft tab;
@@ -8223,7 +8227,7 @@
     }
     function render(){
       var allStars = f.star === "all";
-      head.innerHTML = "<tr><th>Fish</th><th class=\"num-cell\">Lv</th><th>Weather</th><th>Active hours</th><th>Shadow</th>" +
+      head.innerHTML = "<tr><th>Fish</th><th class=\"num-cell\">Lv</th><th>Weather</th><th>Active hours <span class=\"muted\">(game time)</span></th><th>Shadow</th>" +
         (allStars ? [1,2,3,4,5].map(function(s){ return '<th class="num-cell">&#9733;'+s+"</th>"; }).join("")
                   : '<th class="num-cell">&#9733;'+f.star+" price</th>") +
         "<th>Found at</th></tr>";
@@ -8345,7 +8349,7 @@
     }
     function render(){
       var all = f.star === "all";
-      head.innerHTML = "<tr><th>" + opts.label + '</th><th class="num-cell">Lv</th><th>Weather</th><th>Active hours</th>' +
+      head.innerHTML = "<tr><th>" + opts.label + '</th><th class="num-cell">Lv</th><th>Weather</th><th>Active hours <span class=\"muted\">(game time)</span></th>' +
         (opts.range ? "<th>Photo range</th>" : "") +
         (all ? [1,2,3,4,5].map(function(n){ return '<th class="num-cell">&#9733;' + n + "</th>"; }).join("")
              : '<th class="num-cell">&#9733;' + f.star + " " + opts.priceWord + "</th>") +
@@ -10670,9 +10674,9 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       return T().plots.filter(function(p){ return !p.kind && FLOWER_ICON[p.crop] && p.endsAt > at && p.startedAt <= at; });
     }
     function waterInstant(dayOffset){
-      var hm = (waterCfg().at || "17:00").split(":"), d = new Date();
-      d.setDate(d.getDate() + dayOffset); d.setHours(parseInt(hm[0], 10) || 0, parseInt(hm[1], 10) || 0, 0, 0);
-      return d.getTime();
+      // On the clock the app shows times in (Show times in, on the Menu).
+      var hm = (waterCfg().at || "17:00").split(":"), p = HH_TIME.parts(Date.now()), off = HH_TIME.localUtc() * 3600000;
+      return Date.UTC(p.y, p.mo, p.d + dayOffset, parseInt(hm[0], 10) || 0, parseInt(hm[1], 10) || 0) - off;
     }
     function waterBody(list){
       var names = list.map(function(p){ return p.crop; });
