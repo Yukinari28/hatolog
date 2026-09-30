@@ -3824,7 +3824,7 @@
       <div class="card">
         <h3 style="margin-top:0;">What the icons mean</h3>
         <div class="wx-legend" id="wx-legend"></div>
-        <p class="muted" style="margin:12px 0 0;font-size:0.84rem;">Each day is split into the game's four 6-hour windows: Dawn 00&ndash;06, Morning 06&ndash;12, Afternoon 12&ndash;18, Evening 18&ndash;24. Dates follow the real calendar.</p>
+        <p class="muted" style="margin:12px 0 0;font-size:0.84rem;">Each day is split into the game's four 6-hour windows: Dawn 00&ndash;06, Morning 06&ndash;12, Afternoon 12&ndash;18, Evening 18&ndash;24, in game time. Dates follow your server's calendar, and the hour-by-hour times are shown on your clock.</p>
       </div>
     </div>
 
@@ -9692,6 +9692,13 @@
       return new Date(p.y, p.mo, p.d);
     }
     function hourView(){ return serverParts().h; }
+    // Forecast hours are game hours; they are printed on the clock the app shows
+    // times in (Show times in), so SEA 18:00 reads 7pm on a UTC+8 phone.
+    function shownHour(h){
+      var t = h + HH_TIME.offset(), x = ((t % 24) + 24) % 24, hh = Math.floor(x), mm = Math.round((x - hh) * 60);
+      return mm ? HH_TIME.fmtHM(hh, mm) : HH_TIME.hourLabel(hh);
+    }
+    function blockRange(i){ return shownHour(i * 6) + "–" + shownHour(i * 6 + 6); }
     function sameDay(a, b){
       return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
     }
@@ -9764,7 +9771,7 @@
           '<span class="wx-next-ico">' + x.w.i + "</span>" +
           '<div class="wx-next-main"><div class="wx-next-name">' + escapeHtml(x.w.n) + "</div>" +
           '<div class="wx-next-when muted">' + when + " \u00b7 " + WX_BLOCKS[x.b].k +
-          " " + WX_BLOCKS[x.b].h + "</div></div>" +
+          " " + blockRange(x.b) + "</div></div>" +
         "</div>";
       }).join("");
     }
@@ -9792,23 +9799,24 @@
         if(w.special) special = true;
         rows += '<div class="wx-hour' + (w.special ? " is-special" : "") +
                 (isToday && nowH === h ? " now" : "") + '">' +
-                '<span class="wx-hour-t">' + HH_TIME.hourLabel(h) + "</span>" +
+                '<span class="wx-hour-t">' + shownHour(h) + "</span>" +
                 '<span class="wx-hour-i">' + w.icon + "</span>" +
                 '<span class="wx-hour-n">' + escapeHtml(w.name) + "</span>" +
                 "</div>";
       }
       return '<div class="wx-phase' + (special ? " has-special" : "") + '">' +
-phaseHead(WX_BLOCKS[p]) + rows + "</div>";
+phaseHead(WX_BLOCKS[p], p) + rows + "</div>";
     }
-    function phaseHead(b){
-      return '<div class="wx-phase-name">' + b.k + " <span>" + b.h + "</span></div>";
+    function phaseHead(b, i){
+      return '<div class="wx-phase-name">' + b.k + " <span>" + blockRange(i) + "</span></div>";
     }
     function showDay(d, quiet){
       if(!detail) return;
       openDay = d;
       detail.hidden = false;
       detailTitle.textContent = DAYS[d.getDay()] + " " + d.getDate() + " " +
-                                MONTHS[d.getMonth()] + " " + d.getFullYear() + " · " + HH_TIME.get().label + " time";
+                                MONTHS[d.getMonth()] + " " + d.getFullYear() + " · " + HH_TIME.get().label +
+                                (HH_TIME.offset() === 0 ? " time" : " day, hours on your clock (UTC" + HH_TIME.fmtOff(HH_TIME.localUtc()) + ")");
       if(!WX_HOURS[wxKey(d)]){
         detailBody.innerHTML = missingNote("No hourly data for this month.");
         return;
@@ -9854,7 +9862,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
         // can't disagree. The hour-by-hour detail is a click away.
         var w = blocks && WX[blocks[i]];
         if(!w) return;
-        out += "<div><span>" + b.k + ' <span class="muted">' + b.h + "</span></span>" +
+        out += "<div><span>" + b.k + ' <span class="muted">' + blockRange(i) + "</span></span>" +
                '<span class="' + (w.sp ? "sp" : "") + '">' + w.i + " " + escapeHtml(w.n) + "</span></div>";
       });
       return out;
