@@ -9675,13 +9675,19 @@
       if(!w) return '<span class="wx-cell" title="unknown">\u00b7</span>';
       return '<span class="wx-cell' + (w.sp ? " special" : "") + '" title="' + escapeHtml(w.n) + '">' + w.i + "</span>";
     }
-    // The calendar date it is on whichever clock is being shown, as a plain
-    // local Date so the day/month arithmetic elsewhere keeps working.
+    // The forecast runs on game (server) time: its dates and hours are the
+    // server's, so "today" and the highlighted hour follow the chosen server,
+    // not this device's clock. Kept as a plain local Date so the day/month
+    // arithmetic elsewhere keeps working.
+    function serverParts(){
+      var d = new Date(Date.now() + HH_TIME.get().utc * 3600000);
+      return { y:d.getUTCFullYear(), mo:d.getUTCMonth(), d:d.getUTCDate(), h:d.getUTCHours() };
+    }
     function todayView(){
-      var p = HH_TIME.parts(Date.now());
+      var p = serverParts();
       return new Date(p.y, p.mo, p.d);
     }
-    function hourView(){ return HH_TIME.parts(Date.now()).h; }
+    function hourView(){ return serverParts().h; }
     function sameDay(a, b){
       return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
     }
@@ -9793,12 +9799,12 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
     function phaseHead(b){
       return '<div class="wx-phase-name">' + b.k + " <span>" + b.h + "</span></div>";
     }
-    function showDay(d){
+    function showDay(d, quiet){
       if(!detail) return;
       openDay = d;
       detail.hidden = false;
       detailTitle.textContent = DAYS[d.getDay()] + " " + d.getDate() + " " +
-                                MONTHS[d.getMonth()] + " " + d.getFullYear();
+                                MONTHS[d.getMonth()] + " " + d.getFullYear() + " · " + HH_TIME.get().label + " time";
       if(!WX_HOURS[wxKey(d)]){
         detailBody.innerHTML = missingNote("No hourly data for this month.");
         return;
@@ -9806,7 +9812,7 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
       detailBody.innerHTML = '<div class="wx-phases">' +
         [0,1,2,3].map(function(i){ return phaseHtml(d, i); }).join("") + "</div>";
       paintDaySteppers();
-      detail.scrollIntoView({ behavior:"smooth", block:"nearest" });
+      if(!quiet) detail.scrollIntoView({ behavior:"smooth", block:"nearest" });
     }
     // The arrows walk the same seven days the strip shows; looking further out
     // is what the Th.gl link is for.
@@ -9998,13 +10004,13 @@ phaseHead(WX_BLOCKS[p]) + rows + "</div>";
         " \u00b7 " + (manual ? "set by hand \u2014 every time in the app uses it"
                              : "every time in the app follows this");
     }
-    HH_TIME.onChange(function(){ paintTzNote(); paintWeek(); paintNext(); wireAll(); });
+    HH_TIME.onChange(function(){ paintTzNote(); paintWeek(); paintNext(); wireAll(); if(openDay && detail && !detail.hidden) showDay(openDay, true); });
     paintTzNote();
     setInterval(paintTzNote, 30000);
 
     paintWeek(); paintNext(); wireAll();
     // Crossing midnight while the page is open should move "today" along.
-    setInterval(function(){ paintWeek(); paintNext(); wireAll(); }, 10 * 60 * 1000);
+    setInterval(function(){ paintWeek(); paintNext(); wireAll(); if(openDay && detail && !detail.hidden) showDay(openDay, true); }, 5 * 60 * 1000);
   })();
 
   // ---------- LINKS ----------
