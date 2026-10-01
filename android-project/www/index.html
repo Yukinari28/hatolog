@@ -8036,17 +8036,19 @@
       {"n": "Glasswing Butterfly", "lv": 14, "w": "B", "at": ["Whale Mountain"], "t": "12:00PM-12:00AM", "p": 3840},
       {"n": "Green Snail", "lv": 14, "w": "RNB", "at": ["Forest Island"], "p": 4720}
     ],
+    // Ten golden-shadow sea fish only bite on the Sea Fishing Party boat trip, not
+    // from the shore of any sea (Tidebell's fish list; reported by a player too).
     fish: [
-      {"n": "Striped Red Mullet", "lv": 1, "w": "SRNB", "at": ["Old Sea", "Whale Sea", "Zephyr Sea", "East Sea"], "d": "Golden", "p": 2560},
-      {"n": "Common Octopus", "lv": 4, "w": "SRNB", "at": ["Old Sea", "Whale Sea", "Zephyr Sea", "East Sea"], "d": "Medium, Golden", "p": 2560},
-      {"n": "Anglerfish", "lv": 2, "w": "SRNB", "at": ["Old Sea", "Whale Sea", "Zephyr Sea", "East Sea"], "d": "Golden", "p": 2560},
-      {"n": "Turbot", "lv": 3, "w": "SRNB", "at": ["Old Sea", "Whale Sea", "Zephyr Sea", "East Sea"], "d": "Medium", "p": 2560},
-      {"n": "European Flying Squid", "lv": 5, "w": "SRNB", "at": ["Old Sea", "Whale Sea", "Zephyr Sea", "East Sea"], "d": "Golden", "p": 2560},
-      {"n": "Nursehound", "lv": 6, "w": "SRNB", "at": ["Old Sea", "Whale Sea", "Zephyr Sea", "East Sea"], "d": "Large, Golden", "p": 4280},
-      {"n": "Giant Oarfish", "lv": 7, "w": "SRNB", "at": ["Old Sea", "Whale Sea", "Zephyr Sea", "East Sea"], "t": "7:00AM-7:00PM", "d": "Golden", "p": 4280},
-      {"n": "Golden King Crab", "lv": 8, "w": "B", "at": ["Old Sea", "Whale Sea", "Zephyr Sea", "East Sea"], "d": "Golden", "p": 6800},
-      {"n": "Moonfish", "lv": 9, "w": "SRNB", "at": ["Old Sea", "Whale Sea", "Zephyr Sea", "East Sea"], "t": "7:00PM-7:00AM", "d": "Golden", "p": 6800},
-      {"n": "Shortfin Mako Shark", "lv": 10, "w": "B", "at": ["Old Sea", "Whale Sea", "Zephyr Sea", "East Sea"], "t": "7:00AM-7:00PM", "d": "Golden", "p": 6800},
+      {"n": "Striped Red Mullet", "lv": 1, "w": "SRNB", "at": [], "sp": "Sea Fishing Party (boat only)", "d": "Golden", "p": 2560},
+      {"n": "Common Octopus", "lv": 4, "w": "SRNB", "at": [], "sp": "Sea Fishing Party (boat only)", "d": "Medium, Golden", "p": 2560},
+      {"n": "Anglerfish", "lv": 2, "w": "SRNB", "at": [], "sp": "Sea Fishing Party (boat only)", "d": "Golden", "p": 2560},
+      {"n": "Turbot", "lv": 3, "w": "SRNB", "at": [], "sp": "Sea Fishing Party (boat only)", "d": "Medium", "p": 2560},
+      {"n": "European Flying Squid", "lv": 5, "w": "SRNB", "at": [], "sp": "Sea Fishing Party (boat only)", "d": "Golden", "p": 2560},
+      {"n": "Nursehound", "lv": 6, "w": "SRNB", "at": [], "sp": "Sea Fishing Party (boat only)", "d": "Large, Golden", "p": 4280},
+      {"n": "Giant Oarfish", "lv": 7, "w": "SRNB", "at": [], "sp": "Sea Fishing Party (boat only)", "t": "7:00AM-7:00PM", "d": "Golden", "p": 4280},
+      {"n": "Golden King Crab", "lv": 8, "w": "B", "at": [], "sp": "Sea Fishing Party (boat only)", "d": "Golden", "p": 6800},
+      {"n": "Moonfish", "lv": 9, "w": "SRNB", "at": [], "sp": "Sea Fishing Party (boat only)", "t": "7:00PM-7:00AM", "d": "Golden", "p": 6800},
+      {"n": "Shortfin Mako Shark", "lv": 10, "w": "B", "at": [], "sp": "Sea Fishing Party (boat only)", "t": "7:00AM-7:00PM", "d": "Golden", "p": 6800},
       {"n": "Sardine", "lv": 1, "w": "SRNB", "at": ["Old Sea", "Whale Sea", "Zephyr Sea", "East Sea"], "d": "Small", "p": 400},
       {"n": "Sea Bass", "lv": 1, "w": "SRNB", "at": ["Old Sea", "Whale Sea", "Zephyr Sea", "East Sea"], "d": "Medium", "p": 600},
       {"n": "Skipjack Tuna", "lv": 1, "w": "SRNB", "at": ["Old Sea", "Whale Sea", "Zephyr Sea", "East Sea"], "d": "Large", "p": 1680},
@@ -8192,6 +8194,7 @@
     var fish = SPECIES.fish.map(function(f){
       var pr = FISH_PRICES[f.n] || [0,0,0,0,f.p||0];
       var water = {};
+      if(/Sea Fishing/.test(f.sp || "")) water.sea = 1;
       f.at.forEach(function(a){
         if(/Sea/.test(a)) water.sea = 1;
         else if(/Lake/.test(a)) water.lake = 1;
@@ -8202,7 +8205,7 @@
     var f = { q:"", star:"5", wx:{S:1,R:1,N:1,B:1}, water:"", loc:"", shadow:"", time:"", lv:"", sort:"lv" };
 
     var locs = {}, lvs = {};
-    fish.forEach(function(x){ x.f.at.forEach(function(a){ locs[a]=1; }); lvs[x.f.lv]=1; });
+    fish.forEach(function(x){ x.f.at.forEach(function(a){ locs[a]=1; }); if(x.f.sp) locs[x.f.sp]=1; lvs[x.f.lv]=1; });
     var locSel = document.getElementById("ff-loc");
     Object.keys(locs).sort().forEach(function(a){ var o=document.createElement("option"); o.value=a; o.textContent=a; locSel.appendChild(o); });
     var lvSel = document.getElementById("ff-lv");
@@ -8218,7 +8221,7 @@
       if(f.q && (e.n + " " + e.at.join(" ") + " " + (e.d||"") + " " + (e.sp||"")).toLowerCase().indexOf(f.q) < 0) return false;
       if(!e.w.split("").some(function(c){ return f.wx[c]; })) return false;
       if(f.water && !x.water[f.water]) return false;
-      if(f.loc && e.at.indexOf(f.loc) < 0) return false;
+      if(f.loc && e.at.indexOf(f.loc) < 0 && e.sp !== f.loc) return false;
       if(f.shadow && (e.d||"").indexOf(f.shadow) < 0) return false;
       if(f.time === "all" && e.t) return false;
       if(f.time === "limited" && !e.t) return false;
