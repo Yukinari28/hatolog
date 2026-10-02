@@ -6,7 +6,7 @@
 // works with no signal), and if a newer one arrived the page is told so it can
 // offer a reload rather than yanking the page out from under them mid-timer.
 
-var CACHE = "hh-app-v2";
+var CACHE = "hh-app-v3";
 var APP = "./index.html";
 
 self.addEventListener("install", function (e) {
@@ -59,22 +59,25 @@ self.addEventListener("fetch", function (e) {
     return;
   }
 
+  // The page itself: newest first. A reload asks the server (a cheap 304 when
+  // nothing changed, thanks to the ETag), so an update shows up on the very
+  // next reload instead of one reload late. The saved copy is only used when
+  // the network is down or too slow to answer within a few seconds.
   if (isPage(req)) {
     e.respondWith(
       caches.open(CACHE).then(function (c) {
         return c.match(APP).then(function (hit) {
           var net = fetch(APP, { cache: "no-cache" }).then(function (res) {
-            if (res && res.ok) {
-              c.put(APP, res.clone());
-              if (hit) announceIfChanged(hit, res.clone());
-            }
-            return res;
+            if (res && res.ok) c.put(APP, res.clone());
+            return res && res.ok ? res : null;
           }).catch(function () { return null; });
-          // A cached copy wins on speed; with nothing cached we have to wait.
-          return hit || net.then(function (r) {
-            return r || new Response("<h1>Offline</h1><p>Open the app once with a connection and it will work offline after that.</p>",
-                                     { headers: { "Content-Type": "text/html; charset=utf-8" } });
-          });
+          var offline = function () {
+            return new Response("<h1>Offline</h1><p>Open the app once with a connection and it will work offline after that.</p>",
+                                { headers: { "Content-Type": "text/html; charset=utf-8" } });
+          };
+          if (!hit) return net.then(function (r) { return r || offline(); });
+          var slow = new Promise(function (resolve) { setTimeout(function () { resolve(null); }, 4000); });
+          return Promise.race([net, slow]).then(function (r) { return r || hit; });
         });
       })
     );

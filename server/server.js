@@ -611,6 +611,17 @@ const server = http.createServer((req, res) => {
 
   if (url === "/" || url === "") url = "/index.html";
 
+  // The app page carries its build hash as an ETag, so "is there a newer one?"
+  // costs a 304 with no body instead of re-downloading ~10 MB every open.
+  if (url === "/index.html") {
+    const etag = '"' + currentHash() + '"';
+    res.setHeader("ETag", etag);
+    if ((req.headers["if-none-match"] || "").split(/,\s*/).indexOf(etag) !== -1) {
+      res.writeHead(304, { "Cache-Control": "no-cache" });
+      return res.end();
+    }
+  }
+
   // Nothing is allowed to climb out of public/.
   const file = path.join(ROOT, path.normalize(url).replace(/^(\.\.[\/\\])+/, ""));
   if (!file.startsWith(ROOT)) {

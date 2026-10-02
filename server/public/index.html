@@ -13509,17 +13509,24 @@ phaseHead(WX_BLOCKS[p], p) + rows + "</div>";
     // next time the page is opened; this catches one while a tab is left open
     // for hours, which is exactly what someone watching a crop timer does.
     var seen = null;
-    function check(){
+    // resuming: the app was in the background (or the phone was off) and has
+    // just come back. A newer build found right then is loaded straight away,
+    // since nothing is mid-edit at that moment; while in use, the banner asks.
+    function check(resuming){
       if(document.hidden) return;
       fetch("version.json", { cache: "no-store" }).then(function(r){ return r.json(); }).then(function(v){
         if(!v || !v.hash) return;
         if(seen === null){ seen = v.hash; return; }
-        if(v.hash !== seen){ reg.update(); offerReload(); }
+        if(v.hash !== seen){
+          reg.update();
+          if(resuming) location.reload();
+          else offerReload();
+        }
       }).catch(function(){});
     }
-    check();
-    setInterval(check, 15 * 60 * 1000);
-    document.addEventListener("visibilitychange", function(){ if(!document.hidden) check(); });
+    check(false);
+    setInterval(function(){ check(false); }, 15 * 60 * 1000);
+    document.addEventListener("visibilitychange", function(){ if(!document.hidden) check(true); });
   }).catch(function(e){
     console.warn("HatoLog: offline copy unavailable.", e);
   });
