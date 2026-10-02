@@ -13318,8 +13318,22 @@ phaseHead(WX_BLOCKS[p], p) + rows + "</div>";
   // which is how this device tells its own changes apart from stale data.
   var TOMB_MS = 14 * 86400000;
   var base = null;
-  function plotJson(p){ var c = {}; Object.keys(p).sort().forEach(function(k){ if(k !== "mt") c[k] = p[k]; }); return JSON.stringify(c); }
-  function ver(p){ return p.mt || p.startedAt || 0; }
+  // Only real edits count as a change: "done" and the weed counter are each
+  // device's own bookkeeping (a phone waking up marks a crop done hours late),
+  // and counting them let a sleeping device undo a collect made elsewhere.
+  var BOOKKEEPING = { mt:1, done:1, weedsDone:1 };
+  function plotJson(p){ var c = {}; Object.keys(p).sort().forEach(function(k){ if(!BOOKKEEPING[k]) c[k] = p[k]; }); return JSON.stringify(c); }
+  function ver(p){ return Math.max(p.mt || 0, p.startedAt || 0); }
+  // This device's own removals, kept outside the save too: a device still on an
+  // older build writes the account back without tombstones, and these make
+  // sure whatever was collected here stays collected here.
+  function removedKey(){ return "hh.syncGone." + currentUid; }
+  function removedHere(){ try{ return JSON.parse(localStorage.getItem(removedKey()) || "{}") || {}; }catch(e){ return {}; } }
+  function rememberRemoved(id, t){
+    var m = removedHere(), cut = Date.now() - 14 * 86400000;
+    m[id] = t; Object.keys(m).forEach(function(k){ if(m[k] < cut) delete m[k]; });
+    try{ localStorage.setItem(removedKey(), JSON.stringify(m)); }catch(e){}
+  }
   function timerSets(st){
     var out = [];
     if(!st || typeof st !== "object") return out;
@@ -13356,7 +13370,7 @@ phaseHead(WX_BLOCKS[p], p) + rows + "</div>";
         here[p.id] = 1;
         if(prev[p.id] !== plotJson(p) && !(p.mt && p.mt > now - 1000)) p.mt = now;
       });
-      Object.keys(prev).forEach(function(id){ if(!here[id] && !x.t.gone[id]) x.t.gone[id] = now; });
+      Object.keys(prev).forEach(function(id){ if(!here[id] && !x.t.gone[id]){ x.t.gone[id] = now; rememberRemoved(id, now); } });
     });
   }
   // Merge src's timers into dst (dst keeps everything else, and wins ties).
@@ -13367,7 +13381,9 @@ phaseHead(WX_BLOCKS[p], p) + rows + "</div>";
     timerSets(dst).forEach(function(x){
       var o = other[x.pid]; if(!o) return;
       var gone = {};
-      [x.t.gone, o.gone].forEach(function(g){ Object.keys(g).forEach(function(id){ if(g[id] >= cut) gone[id] = Math.max(gone[id] || 0, g[id]); }); });
+      // removedHere(): this device's own removals, kept outside the cloud doc so an
+      // older build that rewrites the doc without tombstones can't bring them back.
+      [x.t.gone, o.gone, removedHere()].forEach(function(g){ Object.keys(g).forEach(function(id){ if(g[id] >= cut) gone[id] = Math.max(gone[id] || 0, g[id]); }); });
       var pick = {}, order = [];
       x.t.plots.concat(o.plots).forEach(function(p){
         if(!p || !p.id) return;
