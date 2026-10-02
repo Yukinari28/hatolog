@@ -13390,9 +13390,11 @@ phaseHead(WX_BLOCKS[p], p) + rows + "</div>";
         if(!pick[p.id]){ pick[p.id] = p; order.push(p.id); }
         else if(ver(p) > ver(pick[p.id])) pick[p.id] = p;
       });
-      // Two minutes of slack, so a device whose clock runs a little fast can't
-      // undo a removal made on another one.
-      x.t.plots = order.filter(function(id){ return !(gone[id] && gone[id] + 120000 >= ver(pick[id])); })
+      // A removal only loses to a real restart (a replant or a chopped tree) made
+      // after it. Any other edit doesn't count: an older build waking up stamps
+      // the plot as changed just for marking it ready, and that used to bring a
+      // collected crop back. Two minutes of slack covers clocks that run fast.
+      x.t.plots = order.filter(function(id){ return !(gone[id] && gone[id] + 120000 >= (pick[id].startedAt || 0)); })
                        .map(function(id){ return JSON.parse(JSON.stringify(pick[id])); });
       x.t.gone = gone;
     });
@@ -13528,14 +13530,16 @@ phaseHead(WX_BLOCKS[p], p) + rows + "</div>";
     // resuming: the app was in the background (or the phone was off) and has
     // just come back. A newer build found right then is loaded straight away,
     // since nothing is mid-edit at that moment; while in use, the banner asks.
+    // A hidden window (the desktop app sitting in the tray) reloads straight
+    // away too: nobody is looking at it, and an old build left running there
+    // would keep writing old timers back to the account.
     function check(resuming){
-      if(document.hidden) return;
       fetch("version.json", { cache: "no-store" }).then(function(r){ return r.json(); }).then(function(v){
         if(!v || !v.hash) return;
         if(seen === null){ seen = v.hash; return; }
         if(v.hash !== seen){
           reg.update();
-          if(resuming) location.reload();
+          if(resuming || document.hidden) location.reload();
           else offerReload();
         }
       }).catch(function(){});
