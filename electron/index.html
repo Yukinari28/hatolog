@@ -13358,6 +13358,30 @@ phaseHead(WX_BLOCKS[p], p) + rows + "</div>";
     });
     try{ localStorage.setItem(baseKey(), JSON.stringify(base)); }catch(e){}
   }
+  // A timer this device last saw in the cloud that the cloud no longer has was
+  // removed somewhere else, even with no tombstone (older builds left none):
+  // drop it here instead of sending it back up as if it were new. Only when
+  // the cloud copy's register (syncIds: every timer id the account has held
+  // in the last 14 days) lists it, i.e. whoever wrote that copy had the timer
+  // and left it out. An old build rewriting a list from before the timer
+  // existed has an older register without it, so the timer is kept. Timers
+  // edited here since the last sync are kept too. Timers removed before the
+  // register existed aren't in it, so one that has been ready for over a day
+  // and is gone from the cloud counts as collected as well.
+  function pruneRemoved(st, remote){
+    if(!base || !remote) return;
+    var reg = (remote.syncIds && typeof remote.syncIds === "object") ? remote.syncIds : {};
+    var old = Date.now() - 86400000;
+    var other = {};
+    timerSets(remote).forEach(function(x){ var m = {}; x.t.plots.forEach(function(p){ if(p && p.id) m[p.id] = 1; }); other[x.pid] = m; });
+    timerSets(st).forEach(function(x){
+      var prev = base[x.pid], have = other[x.pid];
+      if(!prev || !have) return;
+      x.t.plots = x.t.plots.filter(function(p){
+        return !(p && p.id && prev[p.id] && !have[p.id] && (reg[p.id] || p.endsAt < old) && prev[p.id] === plotJson(p));
+      });
+    });
+  }
   // Stamp this device's own changes since the last sync.
   function markLocal(st){
     if(!base) return;
@@ -13400,6 +13424,16 @@ phaseHead(WX_BLOCKS[p], p) + rows + "</div>";
     });
     return dst;
   }
+  // The register written with every save: the cloud's and this device's,
+  // plus every timer in the copy being written.
+  function syncRegister(out, remote){
+    var reg = {}, now = Date.now(), cut = now - TOMB_MS;
+    [remote && remote.syncIds, out.syncIds].forEach(function(r){
+      if(r && typeof r === "object") Object.keys(r).forEach(function(id){ if(r[id] >= cut) reg[id] = Math.max(reg[id] || 0, r[id]); });
+    });
+    timerSets(out).forEach(function(x){ x.t.plots.forEach(function(p){ if(p && p.id && !reg[p.id]) reg[p.id] = now; }); });
+    return reg;
+  }
   function timersSig(st){
     return timerSets(JSON.parse(JSON.stringify(st || {}))).map(function(x){ return x.pid + ":" + x.t.plots.map(plotJson).join(","); }).join("|");
   }
@@ -13419,7 +13453,9 @@ phaseHead(WX_BLOCKS[p], p) + rows + "</div>";
     runTransaction(db, function(tx){
       return tx.get(ref).then(function(snap){
         out = JSON.parse(JSON.stringify(window.__hh.getState()));
-        if(snap.exists()) mergeTimers(out, snap.data());
+        var remote = snap.exists() ? snap.data() : null;
+        if(remote){ pruneRemoved(out, remote); mergeTimers(out, remote); }
+        out.syncIds = syncRegister(out, remote);
         tx.set(ref, out);
       });
     }).then(function(){
@@ -13429,6 +13465,7 @@ phaseHead(WX_BLOCKS[p], p) + rows + "</div>";
       // just wrote can't bring a collected plot back.
       var cur = window.__hh.getState();
       markLocal(cur);
+      pruneRemoved(cur, out);
       setBase(out);
       // The merge may also have brought in the other device's timers: show them here too.
       var merged = mergeTimers(JSON.parse(JSON.stringify(cur)), out);
@@ -13477,6 +13514,7 @@ phaseHead(WX_BLOCKS[p], p) + rows + "</div>";
       var incoming = snap.data();
       var local = window.__hh.getState() || {};
       markLocal(local);
+      pruneRemoved(local, incoming);
       var next = mergeTimers(JSON.parse(JSON.stringify(incoming)), local);
       var needPush = timersSig(next) !== timersSig(incoming);
       setBase(incoming);
