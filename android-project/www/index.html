@@ -10788,7 +10788,7 @@ phaseHead(WX_BLOCKS[p], p) + rows + "</div>";
         '<div class="hp-txt"><b>' + escapeHtml(p.crop) + (ord ? " has arrived!" : p.kind === "tree" ? " has regrown!" : p.kind === "feeder" ? " is empty!" : " is ready!") + '</b>' +
           '<span>' + kindWord(p) + (p.kind === "feeder" ? " · empty since " : " · ready ") + escapeHtml(at(p.endsAt)) + '</span></div>' +
         '<div class="hp-btns"><button type="button" class="hp-go" data-act="collect">' + (ord ? "Picked up" : p.kind === "tree" ? "Chopped" : p.kind === "feeder" ? "Refilled" : "Collect") + '</button>' +
-          '<button type="button" class="hp-ghost" data-act="view">View</button></div>' +
+          (canReplant(p) ? '<button type="button" class="hp-ghost" data-act="replant">Replant</button>' : '<button type="button" class="hp-ghost" data-act="view">View</button>') + '</div>' +
         '<button type="button" class="hp-x" data-act="close" aria-label="Dismiss">×</button>', 20000);
       d.setAttribute("data-id", p.id);
     }
@@ -10830,6 +10830,12 @@ phaseHead(WX_BLOCKS[p], p) + rows + "</div>";
         var rt = T().plots.filter(function(p){ return p.kind === "tree" && p.endsAt <= Date.now(); });
         rt.slice().forEach(function(p){ collect(p, { silent:true }); });
         if(rt.length) popDoneMany(rt);
+        return;
+      }
+      if(act === "replant"){
+        var rid = card.getAttribute("data-id"), rp = null;
+        T().plots.forEach(function(x){ if(x.id === rid) rp = x; });
+        if(rp) replant(rp); else closePop(card);
         return;
       }
       if(act === "collect"){
@@ -11178,6 +11184,19 @@ phaseHead(WX_BLOCKS[p], p) + rows + "</div>";
       save(); render(); pushSchedule();
     }
 
+    // "Replant" on a finished crop: collect it and start the same crop again,
+    // same growing time and weed setting. (Continuous crops do this on Collect.)
+    function canReplant(p){ return !p.kind && !p.replant && p.dur > 0; }
+    function replant(p){
+      dropPop(p.id);
+      var now = Date.now();
+      p.startedAt = now; p.endsAt = now + p.dur; p.done = false;
+      p.weedsDone = 0;
+      if(p.weeds) p.weeds = weedTimes(now, p.dur);
+      save(); render(); pushSchedule();
+      toast("🌱 " + p.crop + " replanted — ready " + at(p.endsAt) + ".");
+    }
+
     function nextWeed(p, now){
       if(!p.weeds) return null;
       for(var i=0;i<p.weeds.length;i++) if(p.weeds[i] > now) return { at:p.weeds[i], n:i+1 };
@@ -11269,6 +11288,7 @@ phaseHead(WX_BLOCKS[p], p) + rows + "</div>";
         "</div>" +
         '<div class="ct-row-actions">' +
           '<button type="button" class="btn subtle small" data-act="collect">' + (p.kind === "tree" ? (ready ? "Chopped" : "Regrown now") : p.kind === "feeder" ? "Refilled" : ready ? (p.replant ? "Collect &amp; replant" : (p.kind === "order" ? "Picked up" : "Collect")) : "Finish now") + "</button>" +
+          (ready && canReplant(p) ? '<button type="button" class="btn subtle small" data-act="replant" title="Collect and plant ' + escapeHtml(p.crop) + ' again">🌱 Replant</button>' : "") +
           '<button type="button" class="btn subtle small" data-act="remove" aria-label="Cancel this timer">✖</button>' +
         "</div>" +
       "</div>";
@@ -11458,6 +11478,7 @@ phaseHead(WX_BLOCKS[p], p) + rows + "</div>";
       T().plots.forEach(function(x){ if(x.id === id) p = x; });
       if(!p) return;
       if(btn.getAttribute("data-act") === "remove") remove(id);
+      else if(btn.getAttribute("data-act") === "replant") replant(p);
       else collect(p);
     });
     harvestAllBtn.addEventListener("click", function(){ collectAllReady(); });
